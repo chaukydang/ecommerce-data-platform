@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: fct_platform_orders
+    description: "Canonical order (marketplace + OMS + finance). Grain: one order."
+    columns:
+      - {name: order_id, tests: [unique, not_null]}
+  - name: fct_payments
+    columns:
+      - {name: payment_id, tests: [unique, not_null]}
+  - name: fct_refunds
+    columns:
+      - {name: refund_id, tests: [unique, not_null]}
+  - name: fct_settlements
+    columns:
+      - {name: settlement_id, tests: [unique, not_null]}
+  - name: dim_channel
+    columns:
+      - {name: channel_name, tests: [unique, not_null]}
+  - name: dim_date
+    columns:
+      - {name: date_day, tests: [unique, not_null]}
+  - name: mart_daily_sales
+    description: "Grain: order_date x channel."
+    columns:
+      - {name: order_date, tests: [not_null]}
+      - {name: net_sales, tests: [not_null]}
+  - name: mart_financial_reconciliation
+    description: "Per-order reconciliation flags (warehouse-native; exception lifecycle lives in reconciliation_exceptions)."
+    columns:
+      - {name: order_id, tests: [unique, not_null]}
+      - name: payment_check
+        tests: [{accepted_values: {values: [OK, N/A, MISSING, AMOUNT_MISMATCH, PENDING_SYNC]}}]
+      - name: settlement_check
+        tests: [{accepted_values: {values: [OK, N/A, MISSING, PENDING_SETTLEMENT, FORMULA_MISMATCH, GROSS_MISMATCH]}}]

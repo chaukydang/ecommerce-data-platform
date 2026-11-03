@@ -1,0 +1,28 @@
+version: 2
+
+# Raw layer written by the Python ingestion framework (src/ecomplatform). Append-only, one row per
+# distinct (source_record_id, record_hash). All data is SIMULATED (see src/ecomplatform/simulators).
+sources:
+  - name: raw_marketplace
+    schema: raw_marketplace
+    loaded_at_field: ingested_at
+    freshness: {warn_after: {count: 30, period: minute}, error_after: {count: 120, period: minute}}
+    tables: [{name: orders}]
+
+  - name: raw_oms
+    schema: raw_oms
+    loaded_at_field: ingested_at
+    freshness: {warn_after: {count: 30, period: minute}, error_after: {count: 120, period: minute}}
+    tables: [{name: orders}]
+
+  - name: raw_pos
+    schema: raw_pos
+    loaded_at_field: ingested_at
+    freshness: {warn_after: {count: 60, period: minute}, error_after: {count: 240, period: minute}}
+    tables: [{name: transactions}]
+
+  - name: raw_finance
+    schema: raw_finance
+    loaded_at_field: ingested_at
+    freshness: {warn_after: {count: 60, period: minute}, error_after: {count: 1440, period: minute}}
+    tables: [{name: payments}, {name: refunds}, {name: settlements}]

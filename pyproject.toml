@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecomplatform"
+version = "0.1.0"
+description = "Omnichannel e-commerce data platform: ingestion, reconciliation, monitoring"
+requires-python = ">=3.10"
+dependencies = [
+  "requests>=2.31",
+  "PyYAML>=6.0",
+  "SQLAlchemy>=1.4.36",  # Airflow 2.8 pins 1.4.x; also tested on 2.x
+  "pandas>=2.1",
+  "pyarrow>=14",
+]
+
+[project.optional-dependencies]
+bigquery = ["google-cloud-bigquery>=3.20", "db-dtypes>=1.2", "dbt-bigquery>=1.8"]
+postgres = ["psycopg2-binary>=2.9"]
+sim = ["fastapi>=0.110", "uvicorn>=0.29"]
+local = ["duckdb>=1.0", "dbt-duckdb>=1.8"]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5", "sqlglot>=25", "cryptography>=42"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["integration: needs the local simulator + DuckDB (no cloud)", "dbt: runs dbt on DuckDB"]
+
+[tool.ruff]
+line-length = 130
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501", "E731", "E702", "E741", "B008", "B904"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B017"]

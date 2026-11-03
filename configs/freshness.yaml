@@ -1,0 +1,27 @@
+# Initial, configurable freshness targets - NOT verified business SLAs. Tune with the data owners.
+# delay = now - completion time of the last SUCCESS / PARTIAL_SUCCESS run of the ingestion pipeline.
+datasets:
+  - dataset: raw_marketplace.orders
+    pipeline: ingest_marketplace_sim_orders
+    max_delay_minutes: 30
+    severity: CRITICAL
+  - dataset: raw_oms.orders
+    pipeline: ingest_oms_sim_orders
+    max_delay_minutes: 30
+    severity: CRITICAL
+  - dataset: raw_finance.payments
+    pipeline: ingest_finance_sim_payments
+    max_delay_minutes: 30
+    severity: CRITICAL
+  - dataset: raw_finance.refunds
+    pipeline: ingest_finance_sim_refunds
+    max_delay_minutes: 60
+    severity: WARNING
+  - dataset: raw_finance.settlements
+    pipeline: ingest_finance_sim_settlements
+    max_delay_minutes: 1440        # 24 h
+    severity: WARNING
+  - dataset: raw_pos.transactions
+    pipeline: ingest_pos_sim_transactions
+    max_delay_minutes: 60
+    severity: WARNING

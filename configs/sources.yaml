@@ -1,0 +1,156 @@
+# Source registry for the ingestion framework.
+# All sources below are SIMULATED (src/ecomplatform/simulators). They mimic marketplace / OMS / POS /
+# settlement APIs but are NOT production integrations. Swap `base_url_env` to point at a real API and
+# adapt the matching connector's `normalize()`.
+
+defaults:
+  overlap_minutes: 10          # re-read this much before the watermark to catch late updates
+  initial_lookback_days: 365   # first run (no checkpoint): how far back to read
+  page_size: 200
+  timeout_seconds: 10
+  max_attempts: 5
+  base_delay_seconds: 0.5
+  max_reject_ratio: 0.2        # > 20% rejected records fails the batch (checkpoint not advanced)
+
+sources:
+  marketplace_sim:
+    connector: marketplace
+    base_url_env: MARKETPLACE_API_URL
+    base_url_default: http://localhost:8000
+    token_env: MARKETPLACE_API_TOKEN
+    dataset: raw_marketplace
+    entities:
+      orders:
+        path: /v1/marketplace/orders
+        pagination: cursor
+        items_key: data
+        incremental_param: updated_since
+        table: orders
+        schema:
+          key: [order_id]
+          updated_field: updated_at
+          fields:
+            order_id:     {type: string,    required: true}
+            channel:      {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            customer_id:  {type: string}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+
+  oms_sim:
+    connector: oms
+    base_url_env: OMS_API_URL
+    base_url_default: http://localhost:8000
+    token_env: OMS_API_TOKEN
+    dataset: raw_oms
+    entities:
+      orders:
+        path: /v1/oms/orders
+        pagination: page
+        items_key: items
+        incremental_param: updated_since
+        table: orders
+        schema:
+          key: [oms_order_id]
+          updated_field: updated_at
+          fields:
+            oms_order_id: {type: string,    required: true}
+            order_id:     {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+
+  pos_sim:
+    connector: pos
+    base_url_env: POS_API_URL
+    base_url_default: http://localhost:8000
+    token_env: POS_API_TOKEN
+    dataset: raw_pos
+    entities:
+      transactions:
+        path: /v1/pos/transactions
+        pagination: cursor
+        items_key: data
+        incremental_param: updated_since
+        table: transactions
+        schema:
+          key: [txn_id]
+          updated_field: updated_at
+          fields:
+            txn_id:      {type: string,    required: true}
+            store_id:    {type: string,    required: true}
+            txn_type:    {type: string,    required: true}   # SALE | RETURN
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            occurred_at: {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+
+  finance_sim:
+    connector: settlement
+    base_url_env: FINANCE_API_URL
+    base_url_default: http://localhost:8000
+    token_env: FINANCE_API_TOKEN
+    dataset: raw_finance
+    entities:
+      payments:
+        path: /v1/finance/payments
+        pagination: cursor
+        items_key: data
+        incremental_param: updated_since
+        table: payments
+        schema:
+          key: [payment_id]
+          updated_field: updated_at
+          fields:
+            payment_id:  {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            payment_ref: {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            paid_at:     {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+      refunds:
+        path: /v1/finance/refunds
+        pagination: cursor
+        items_key: data
+        incremental_param: updated_since
+        table: refunds
+        schema:
+          key: [refund_id]
+          updated_field: updated_at
+          fields:
+            refund_id:   {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            refund_ref:  {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            status:      {type: string,    required: true}
+            refunded_at: {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+      settlements:
+        path: /v1/finance/settlements
+        pagination: cursor
+        items_key: data
+        incremental_param: updated_since
+        table: settlements
+        schema:
+          key: [settlement_id]
+          updated_field: updated_at
+          fields:
+            settlement_id:     {type: string,    required: true}
+            order_id:          {type: string,    required: true}
+            channel:           {type: string,    required: true}
+            gross_amount:      {type: number,    required: true}
+            seller_discount:   {type: number,    required: true}
+            refund_amount:     {type: number,    required: true}
+            commission_fee:    {type: number,    required: true}
+            shipping_fee:      {type: number,    required: true}
+            adjustment_amount: {type: number,    required: true}
+            net_payout:        {type: number,    required: true}
+            currency:          {type: string,    required: true}
+            settled_at:        {type: timestamp, required: true}
+            updated_at:        {type: timestamp, required: true}

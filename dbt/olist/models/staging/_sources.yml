@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: olist_raw
+    database: clear-variety-492200-n0
+    schema: olist_raw
+    tables:
+      - name: orders
+      - name: order_items
+      - name: order_payments
+      - name: order_reviews
+      - name: customers
+      - name: sellers
+      - name: products
+      - name: geolocation
+      - name: category_translation

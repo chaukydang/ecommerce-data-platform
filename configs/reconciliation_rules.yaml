@@ -1,0 +1,172 @@
+# Configurable reconciliation rules (see docs/reconciliation_rules.md).
+#
+# grace_hours + time_col: a discrepancy on an entity younger than the grace window is classified
+# TIMING (expected sync/settlement lag, auto-resolves when the other side arrives) instead of CONFIRMED.
+# Only CONFIRMED exceptions drive alerts and the "unresolved discrepancy amount" metric.
+
+defaults:
+  tolerance_abs: 0.01        # money tolerance (currency precision), per rule overridable
+  amount_precision: 2
+
+tables:                      # logical name -> warehouse table (latest version per source record)
+  marketplace_orders: raw_marketplace.orders
+  oms_orders:         raw_oms.orders
+  payments:           raw_finance.payments
+  refunds:            raw_finance.refunds
+  settlements:        raw_finance.settlements
+
+# Settlement net payout = sum(coefficient * component). Define per channel according to the real
+# marketplace accounting rules; `default` is used for channels without their own entry.
+settlement_formulas:
+  default:
+    gross_amount: 1
+    seller_discount: -1
+    refund_amount: -1
+    commission_fee: -1
+    shipping_fee: -1
+    adjustment_amount: 1
+
+alerting:
+  min_confirmed_exceptions: 1       # raise RECONCILIATION_DISCREPANCY when >= this many CONFIRMED active exceptions
+  critical_if_difference_above: 100 # escalate to CRITICAL above this total absolute difference
+
+rules:
+  # ---------------- order reconciliation (marketplace vs OMS) ----------------
+  - id: ORD_MISSING_IN_OMS
+    type: missing_in_target
+    entity_type: order
+    left: marketplace_orders
+    right: oms_orders
+    left_key: order_id
+    right_key: order_id
+    where: "status != 'UNPAID'"
+    time_col: created_at
+    grace_hours: 2
+    severity: CRITICAL
+
+  - id: OMS_DUPLICATE_ORDER
+    type: duplicate_key
+    entity_type: order
+    table: oms_orders
+    key: order_id
+    severity: WARNING
+
+  - id: ORD_AMOUNT_MISMATCH
+    type: amount_mismatch
+    entity_type: order
+    left: marketplace_orders
+    right: oms_orders
+    key: order_id
+    left_col: total_amount
+    right_col: total_amount
+    right_dedupe: order_id
+    time_col: created_at
+    grace_hours: 2
+    severity: WARNING
+
+  # ---------------- payment reconciliation ----------------
+  - id: PAY_MISSING
+    type: missing_in_target
+    entity_type: payment
+    left: marketplace_orders
+    right: payments
+    left_key: order_id
+    right_key: order_id
+    where: "status in ['PAID', 'SHIPPED', 'COMPLETED']"
+    time_col: created_at
+    grace_hours: 2
+    severity: CRITICAL
+
+  - id: PAY_AMOUNT_MISMATCH          # partial / over payment (duplicate refs are counted once)
+    type: amount_mismatch
+    entity_type: payment
+    left: marketplace_orders
+    right: payments
+    key: order_id
+    left_col: total_amount
+    right_col: amount
+    right_agg: sum
+    right_dedupe: payment_ref
+    where: "status in ['PAID', 'SHIPPED', 'COMPLETED']"
+    time_col: created_at
+    grace_hours: 2
+    severity: CRITICAL
+
+  - id: PAY_DUPLICATE_REF
+    type: duplicate_key
+    entity_type: payment
+    table: payments
+    key: payment_ref
+    severity: WARNING
+
+  - id: PAY_CURRENCY_MISMATCH
+    type: field_mismatch
+    entity_type: payment
+    left: payments
+    right: marketplace_orders
+    key: order_id
+    left_col: currency
+    right_col: currency
+    severity: CRITICAL
+
+  # ---------------- refund reconciliation ----------------
+  - id: REF_WITHOUT_PAYMENT
+    type: missing_in_target
+    entity_type: refund
+    left: refunds
+    right: payments
+    left_key: order_id
+    right_key: order_id
+    time_col: refunded_at
+    grace_hours: 2
+    severity: CRITICAL
+
+  - id: REF_EXCEEDS_PAID
+    type: sum_exceeds
+    entity_type: refund
+    left: refunds
+    right: payments
+    key: order_id
+    left_col: amount
+    right_col: amount
+    left_dedupe: refund_ref
+    right_dedupe: payment_ref
+    severity: CRITICAL
+
+  - id: REF_DUPLICATE_REF
+    type: duplicate_key
+    entity_type: refund
+    table: refunds
+    key: refund_ref
+    severity: WARNING
+
+  # ---------------- settlement reconciliation ----------------
+  - id: SETTLE_MISSING                # completed orders should be settled within ~7 days
+    type: missing_in_target
+    entity_type: settlement
+    left: marketplace_orders
+    right: settlements
+    left_key: order_id
+    right_key: order_id
+    where: "status == 'COMPLETED'"
+    time_col: updated_at
+    grace_hours: 168
+    severity: WARNING
+
+  - id: SETTLE_FORMULA_MISMATCH
+    type: settlement_formula
+    entity_type: settlement
+    table: settlements
+    key: order_id
+    actual_col: net_payout
+    severity: CRITICAL
+
+  - id: SETTLE_GROSS_MISMATCH
+    type: amount_mismatch
+    entity_type: settlement
+    left: marketplace_orders
+    right: settlements
+    key: order_id
+    left_col: total_amount
+    right_col: gross_amount
+    severity: CRITICAL

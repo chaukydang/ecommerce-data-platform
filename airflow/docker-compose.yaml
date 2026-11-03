@@ -1,0 +1,104 @@
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.1-python3.11   # 3.11 matches the rest of the project (was the default 3.8 image)
+  user: "${AIRFLOW_UID:-50000}:0"
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    GCP_SERVICE_ACCOUNT_KEY: ${GCP_SERVICE_ACCOUNT_KEY}
+    GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
+    GCP_PROJECT_ID: ${GCP_PROJECT_ID}
+    _PIP_ADDITIONAL_REQUIREMENTS: "dbt-bigquery==1.8.3 db-dtypes"
+    # ---- omnichannel platform (src/ecomplatform) -------------------------------------------
+    PYTHONPATH: /opt/airflow/src
+    PLATFORM_CONFIG_DIR: /opt/airflow/configs
+    PLATFORM_DB_URL: postgresql+psycopg2://platform:platform@platform-db/platform
+    PLATFORM_SINK: bigquery
+    BQ_LOCATION: ${BQ_LOCATION:-us-east1}
+    GOOGLE_APPLICATION_CREDENTIALS: /home/airflow/.gcp/keyfile.json
+    # SIMULATED sources served by the `simulator` service; point these at real APIs when available
+    MARKETPLACE_API_URL: http://simulator:8000
+    OMS_API_URL: http://simulator:8000
+    POS_API_URL: http://simulator:8000
+    FINANCE_API_URL: http://simulator:8000
+    MARKETPLACE_API_TOKEN: ${SIM_API_TOKEN:-sim-token}
+    OMS_API_TOKEN: ${SIM_API_TOKEN:-sim-token}
+    POS_API_TOKEN: ${SIM_API_TOKEN:-sim-token}
+    FINANCE_API_TOKEN: ${SIM_API_TOKEN:-sim-token}
+    LARK_WEBHOOK_URL: ${LARK_WEBHOOK_URL:-}
+    LARK_WEBHOOK_SECRET: ${LARK_WEBHOOK_SECRET:-}
+    DBT_KEYFILE_PATH: /home/airflow/.gcp/keyfile.json
+    GCP_KEY_PATH: /home/airflow/.gcp/keyfile.json  # Matches your profiles.yml env_var
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ../dbt:/opt/airflow/dbt
+    - ../src:/opt/airflow/src
+    - ../configs:/opt/airflow/configs
+    - ./.gcp:/home/airflow/.gcp
+  depends_on:
+    postgres:
+      condition: service_healthy
+    platform-db:
+      condition: service_healthy
+    simulator:
+      condition: service_started
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  # Operational metadata (checkpoints, audit log, alerts, reconciliation exceptions)
+  platform-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: platform
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "platform"]
+      interval: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+
+  # SIMULATED marketplace / OMS / POS / finance APIs (not production integrations)
+  simulator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.simulator
+    environment:
+      SIM_API_TOKEN: ${SIM_API_TOKEN:-sim-token}
+      SIM_ORDERS: "400"
+    ports:
+      - "8000:8000"
+
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    entrypoint: /bin/bash -c "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+

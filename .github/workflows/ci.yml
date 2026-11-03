@@ -1,0 +1,31 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - {python: "3.11", sqlalchemy: "1.4.51"}   # what Airflow 2.8.1 ships
+          - {python: "3.12", sqlalchemy: ""}         # latest SQLAlchemy 2.x
+    services:
+      postgres:
+        image: postgres:16
+        env: {POSTGRES_USER: platform, POSTGRES_PASSWORD: platform, POSTGRES_DB: platform}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U platform" --health-interval 5s --health-retries 10
+    env:
+      TEST_DB_URL: postgresql+psycopg2://platform:platform@localhost:5432/platform   # metadata layer on real PostgreSQL
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "${{ matrix.python }}", cache: pip}
+      - run: pip install -e ".[sim,local,bigquery,dev]"
+      - if: matrix.sqlalchemy != ''
+        run: pip install "SQLAlchemy==${{ matrix.sqlalchemy }}" "pandas==2.1.4" "numpy<2"
+      - run: ruff check src tests scripts
+      - name: Unit + integration tests (simulator, DuckDB, dbt on DuckDB - no cloud credentials needed)
+        run: python -m pytest tests -q

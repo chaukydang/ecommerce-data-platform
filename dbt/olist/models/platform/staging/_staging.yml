@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg_marketplace_orders
+    columns:
+      - {name: order_id, tests: [unique, not_null]}
+      - {name: channel, tests: [not_null]}
+      - name: order_status
+        tests: [{accepted_values: {values: [PENDING, PAID, SHIPPED, COMPLETED, CANCELLED]}}]
+      - {name: total_amount, tests: [not_null]}
+
+  - name: stg_oms_orders
+    columns:
+      - {name: oms_order_id, tests: [unique, not_null]}
+      - name: order_id
+        description: One marketplace order should map to one OMS order; duplicates are a reconciliation finding.
+        tests:
+          - not_null
+          - unique: {config: {severity: warn}}
+          - relationships: {to: ref('stg_marketplace_orders'), field: order_id, config: {severity: warn}}
+
+  - name: stg_payments
+    columns:
+      - {name: payment_id, tests: [unique, not_null]}
+      - name: payment_ref
+        tests: [not_null, {unique: {config: {severity: warn}}}]
+      - name: order_id
+        tests: [not_null, {relationships: {to: ref('stg_marketplace_orders'), field: order_id, config: {severity: warn}}}]
+
+  - name: stg_refunds
+    columns:
+      - {name: refund_id, tests: [unique, not_null]}
+      - name: refund_ref
+        tests: [not_null, {unique: {config: {severity: warn}}}]
+
+  - name: stg_settlements
+    columns:
+      - {name: settlement_id, tests: [unique, not_null]}
+      - {name: order_id, tests: [not_null]}
+
+  - name: stg_pos_transactions
+    columns:
+      - {name: txn_id, tests: [unique, not_null]}
+      - name: txn_type
+        tests: [{accepted_values: {values: [SALE, RETURN]}}]

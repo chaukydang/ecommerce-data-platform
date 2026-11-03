@@ -1,0 +1,31 @@
+olist:
+  target: prod
+  outputs:
+    prod:
+      type: bigquery
+      method: service-account
+      project: clear-variety-492200-n0
+      dataset: olist
+      keyfile: "{{ env_var('GCP_KEY_PATH', '') }}"  # Dynamic path
+      location: us-east1
+      threads: 4
+      timeout_seconds: 300
+
+    # Local, cloud-free target used by CI and the demo: dbt-duckdb on the file written by the ingestion sink.
+    #   DUCKDB_PATH=warehouse.duckdb dbt build --select path:models/platform --target local
+    local:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'warehouse.duckdb') }}"
+      schema: main
+      threads: 1
+
+    # Your own BigQuery project (free sandbox works): `gcloud auth application-default login`, then
+    #   GCP_PROJECT_ID=my-project BQ_LOCATION=US dbt build --select path:models/platform --target bq_oauth ...
+    bq_oauth:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('GCP_PROJECT_ID', '') }}"
+      dataset: olist            # default dataset; platform models use their own platform_* datasets
+      location: "{{ env_var('BQ_LOCATION', 'US') }}"
+      threads: 4
+      timeout_seconds: 300

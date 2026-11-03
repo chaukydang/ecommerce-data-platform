@@ -1,0 +1,53 @@
+# Data quality checks evaluated on the *latest version* of each raw table (see monitoring/quality.py).
+volume_change_pct: 100     # fail when row count differs from the previous check by more than this %
+
+datasets:
+  - dataset: raw_marketplace.orders
+    source: marketplace_sim
+    entity: orders
+    pk_unique: [order_id]
+    required: [order_id, channel, status, total_amount, currency, created_at]
+    accepted_values:
+      status: [PENDING, PAID, SHIPPED, COMPLETED, CANCELLED]
+    non_negative: [total_amount]
+    severity: CRITICAL
+
+  - dataset: raw_oms.orders
+    source: oms_sim
+    entity: orders
+    pk_unique: [oms_order_id]
+    required: [oms_order_id, order_id, status, total_amount]
+    accepted_values:
+      status: [PENDING, PAID, SHIPPED, COMPLETED, CANCELLED]
+    relationships:
+      - {column: order_id, to: raw_marketplace.orders, to_column: order_id}
+    severity: CRITICAL
+
+  - dataset: raw_finance.payments
+    source: finance_sim
+    entity: payments
+    pk_unique: [payment_id]
+    required: [payment_id, order_id, payment_ref, amount, currency]
+    non_negative: [amount]
+    relationships:
+      - {column: order_id, to: raw_marketplace.orders, to_column: order_id}
+    severity: CRITICAL
+
+  - dataset: raw_finance.refunds
+    source: finance_sim
+    entity: refunds
+    pk_unique: [refund_id]
+    required: [refund_id, order_id, refund_ref, amount]
+    non_negative: [amount]
+    relationships:
+      - {column: order_id, to: raw_marketplace.orders, to_column: order_id}
+    severity: WARNING
+
+  - dataset: raw_finance.settlements
+    source: finance_sim
+    entity: settlements
+    pk_unique: [settlement_id]
+    required: [settlement_id, order_id, gross_amount, net_payout]
+    relationships:
+      - {column: order_id, to: raw_marketplace.orders, to_column: order_id}
+    severity: WARNING
