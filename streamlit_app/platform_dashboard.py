@@ -79,16 +79,19 @@ def filters(page: str, sales: pd.DataFrame, with_view: bool = True):
                            format_func=lambda k: f"{tr('channel')}: {tr('all') if k == '__all__' else k}")
     gran = "day"
     if with_view:
-        gran = cols[2].selectbox("gr", ["day", "week", "month"], key=f"{page}_gr", label_visibility="collapsed",
+        span = (sales["order_date"].max() - sales["order_date"].min()).days if len(sales) else 0
+        auto = 2 if span > 400 else 1 if span > 90 else 0           # long history -> months / weeks, short -> days
+        gran = cols[2].selectbox("gr", ["day", "week", "month"], index=auto, key=f"{page}_gr", label_visibility="collapsed",
                                  format_func=lambda k: f"{tr('view_by')}: {tr(k)}")
     return tf, (None if ch == "__all__" else ch), gran
 
 
 def activity_card(f: pd.DataFrame, gran: str, height: int = 352) -> str:
     agg = story.aggregate(f, gran)
-    fmt = {"day": "%d %b", "week": "%d %b", "month": "%b %Y"}[gran]
-    labels = [d.strftime(fmt).upper() for d in agg["period"]]
-    chart = ui.bar_chart(labels, agg["net_sales"].tolist(), fmt=lambda v: story.money(v).replace(".00", ""))
+    span_years = len({d.year for d in agg["period"]}) > 1
+    fmt = {"day": "%d %b %y" if span_years else "%d %b", "week": "%d %b %y" if span_years else "%d %b", "month": "%b %Y"}[gran]
+    labels = [d.strftime(fmt) for d in agg["period"]]
+    chart = ui.line_chart(labels, agg["net_sales"].tolist(), fmt=lambda v: story.money(v).replace(".00", ""), peak_label=tr("peak"))
     return (f'<div class="card" style="min-height:{height}px"><h4>{ui.esc(tr("activity"))} · '
             f'<span style="color:#9CA3AF">{ui.esc(tr("activity_sub", unit=tr(gran).lower()))}</span></h4>{chart}</div>')
 

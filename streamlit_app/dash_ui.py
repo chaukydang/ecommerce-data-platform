@@ -122,6 +122,46 @@ def nice_max(v: float) -> float:
     return 10 * exp
 
 
+def line_chart(labels: list[str], values: list[float], width: int = 900, height: int = 320, fmt=lambda v: f"{v:,.0f}",
+               peak_label: str = "Peak") -> str:
+    """Smooth line + soft area, 5 gridlines, ~8 x labels, last-point dot and the peak annotated (readable for long series)."""
+    n = len(values)
+    if n < 2:
+        return ""
+    left, right, bottom, top = 78, 24, 34, 30
+    raw = max(values) / 4 or 1.0
+    exp = 10 ** math.floor(math.log10(raw))
+    step_v = next(m * exp for m in (1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10) if raw <= m * exp)      # 4 clean gridline steps (no 62.5K ticks)
+    ymax = step_v * 4
+    plot_w, plot_h = width - left - right, height - bottom - top
+    xs = [left + plot_w * i / (n - 1) for i in range(n)]
+    ys = [top + plot_h - max(0.0, v) / ymax * plot_h for v in values]
+    gid = f"l{next(_uid)}"
+    out = [f'<svg viewBox="0 0 {width} {height}" style="width:100%;height:auto"><defs><linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1">'
+           f'<stop offset="0" stop-color="{BLUE}" stop-opacity=".22"/><stop offset="1" stop-color="{BLUE}" stop-opacity="0"/></linearGradient></defs>']
+    for i in range(5):
+        v = ymax * i / 4
+        y = top + plot_h - v / ymax * plot_h
+        out.append(f'<line x1="{left}" x2="{width - right}" y1="{y:.1f}" y2="{y:.1f}" stroke="#EEF0F4" stroke-width="1"/>')
+        out.append(f'<text x="{left - 10}" y="{y + 4:.1f}" text-anchor="end" font-size="12" fill="#9CA3AF">{esc(fmt(v))}</text>')
+    step = max(1, math.ceil(n / 8))
+    for i in range(0, n, step):
+        out.append(f'<text x="{xs[i]:.1f}" y="{height - 10}" text-anchor="middle" font-size="12" fill="#9CA3AF">{esc(labels[i])}</text>')
+    line = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys, strict=True))     # straight segments: the peak sits exactly on the line
+    out.append(f'<path d="{line} L{xs[-1]:.1f},{top + plot_h} L{xs[0]:.1f},{top + plot_h} Z" fill="url(#{gid})"/>')
+    out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>')
+    k = max(range(n), key=lambda i: values[i])
+    tx = min(max(xs[k], left + 70), width - right - 70)
+    out.append(f'<circle cx="{xs[k]:.1f}" cy="{ys[k]:.1f}" r="5" fill="#fff" stroke="{BLUE}" stroke-width="2.5"/>')
+    out.append(f'<text x="{tx:.1f}" y="{max(14.0, ys[k] - 12):.1f}" text-anchor="middle" font-size="12.5" font-weight="600" fill="#111827">'
+               f'{esc(peak_label)}: {esc(labels[k])} · {esc(fmt(values[k]))}</text>')
+    out.append(f'<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="4" fill="{BLUE}"/>')
+    for x, y, lab, v in zip(xs, ys, labels, values, strict=True):      # invisible hover targets with tooltips
+        out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="transparent"><title>{esc(lab)}: {esc(fmt(v))}</title></circle>')
+    out.append("</svg>")
+    return "".join(out)
+
+
 def bar_chart(labels: list[str], values: list[float], width: int = 560, height: int = 290, fmt=lambda v: f"{v:,.0f}") -> str:
     """Rounded bars on a light track (like the template's Activity chart)."""
     n = len(values)
