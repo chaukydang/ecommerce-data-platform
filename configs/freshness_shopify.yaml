@@ -1,0 +1,4 @@
+datasets:
+  - {dataset: raw_shopify.orders,   pipeline: ingest_shopify_orders,   max_delay_minutes: 60, severity: CRITICAL}
+  - {dataset: raw_shopify.payments, pipeline: ingest_shopify_payments, max_delay_minutes: 60, severity: CRITICAL}
+  - {dataset: raw_shopify.refunds,  pipeline: ingest_shopify_refunds,  max_delay_minutes: 120, severity: WARNING}

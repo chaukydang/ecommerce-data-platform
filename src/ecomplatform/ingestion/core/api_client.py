@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable, Mapping
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
@@ -11,10 +13,13 @@ from .retry_policy import AuthError, PermanentError, RetryPolicy, TransientError
 
 
 class ApiClient:
-    """Thin REST client: bearer auth, timeouts, retry/backoff, error classification.
+    """Thin REST client: auth header, timeouts, retry/backoff, error classification.
 
-    The token is read from the environment variable named by ``token_env`` and is
-    never included in exception messages (all errors pass through ``redact``).
+    * Default auth is ``Authorization: Bearer <token>``; set ``auth_header`` / ``auth_prefix`` for other schemes
+      (e.g. Shopify: ``X-Shopify-Access-Token`` with an empty prefix).
+    * ``token_provider`` (optional) fetches a fresh token; it is called lazily and once more after a 401 (expiring tokens).
+    * Secrets never appear in exception messages (all errors pass through ``redact``).
+    * Absolute URLs (pagination ``Link`` headers) are only followed on the configured host, so credentials cannot leak elsewhere.
     """
 
     def __init__(
@@ -25,9 +30,14 @@ class ApiClient:
         retry: RetryPolicy | None = None,
         session: requests.Session | None = None,
         token: str | None = None,
+        auth_header: str = "Authorization",
+        auth_prefix: str = "Bearer ",
+        token_provider: Callable[[], str] | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self._token = token if token is not None else (os.getenv(token_env) if token_env else None)
+        self._provider = token_provider
+        self.auth_header, self.auth_prefix = auth_header, auth_prefix
         self.timeout = timeout
         self.retry = retry or RetryPolicy()
         self.session = session or requests.Session()
@@ -35,11 +45,21 @@ class ApiClient:
     def _secrets(self) -> list[str]:
         return [self._token] if self._token else []
 
-    def _once(self, path: str, params: dict[str, Any] | None) -> dict:
+    def _url(self, path: str) -> str:
+        if path.startswith(("http://", "https://")):
+            a, b = urlsplit(path), urlsplit(self.base_url)
+            if (a.scheme, a.netloc) != (b.scheme, b.netloc):
+                raise PermanentError("refusing to follow a URL on a different host (credentials stay on the configured host)")
+            return path
+        return f"{self.base_url}{path}"
+
+    def _once(self, path: str, params: dict[str, Any] | None) -> tuple[dict, Mapping[str, str]]:
+        if self._token is None and self._provider:
+            self._token = self._provider()
         headers = {"Accept": "application/json"}
         if self._token:
-            headers["Authorization"] = f"Bearer {self._token}"
-        url = f"{self.base_url}{path}"
+            headers[self.auth_header] = f"{self.auth_prefix}{self._token}"
+        url = self._url(path)
         try:
             resp = self.session.get(url, params=params, headers=headers, timeout=self.timeout)
         except (requests.Timeout, requests.ConnectionError) as exc:
@@ -55,9 +75,21 @@ class ApiClient:
         if code >= 400:
             raise PermanentError(f"HTTP {code} from {path}: {redact(resp.text[:200], self._secrets())}")
         try:
-            return resp.json()
+            return resp.json(), resp.headers
         except ValueError:
             raise PermanentError(f"Invalid JSON from {path}") from None
 
+    def _with_refresh(self, path: str, params: dict[str, Any] | None) -> tuple[dict, Mapping[str, str]]:
+        try:
+            return self._once(path, params)
+        except AuthError:
+            if not self._provider:
+                raise
+            self._token = self._provider()              # token expired: fetch a new one and retry exactly once
+            return self._once(path, params)
+
+    def get_response(self, path: str, params: dict[str, Any] | None = None) -> tuple[dict, Mapping[str, str]]:
+        return self.retry.call(lambda: self._with_refresh(path, params))
+
     def get_json(self, path: str, params: dict[str, Any] | None = None) -> dict:
-        return self.retry.call(lambda: self._once(path, params))
+        return self.get_response(path, params)[0]

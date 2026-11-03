@@ -26,6 +26,9 @@ from dash_i18n import LANGS, check_name, finding_name, make_tr  # noqa: E402
 st.set_page_config(page_title="Omnichannel Data Platform", page_icon="📊", layout="wide")
 ui.inject_css()
 
+SIMULATED = os.getenv("DASH_SIMULATED", "1") != "0"          # DASH_SIMULATED=0 for real (Shopify) data
+CHIP_KEY, NOTE_KEY = ("sim_chip", "sim_note") if SIMULATED else ("live_chip", "live_note")
+
 if "lang" not in st.session_state:
     st.session_state["lang"] = "vi"
 lang = st.session_state["lang"]
@@ -55,7 +58,7 @@ def load_all():
 # ------------------------------------------------------------------ shared widgets
 def header(title: str, csv: tuple[str, bytes] | None = None) -> None:
     a, b = st.columns([8, 2])
-    a.markdown(f'<div class="page-title">{ui.esc(title)}<span class="chip">{ui.esc(tr("sim_chip"))}</span></div>', unsafe_allow_html=True)
+    a.markdown(f'<div class="page-title">{ui.esc(title)}<span class="chip">{ui.esc(tr(CHIP_KEY))}</span></div>', unsafe_allow_html=True)
     if csv:
         b.download_button("⬇  " + tr("download"), csv[1], csv[0], "text/csv", use_container_width=True)
     ui.render('<hr class="page-rule">')
@@ -248,7 +251,7 @@ def page_guide():
     pairs = [(tr(k), tr(k + "_d")) for k in ("g_finding", "g_confirmed", "g_timing", "g_settle", "g_oms", "g_clean", "g_fresh")]
     ui.render(ui.card(tr("guide_glossary"), ui.glossary(pairs)))
     st.write("")
-    st.info(tr("sim_note"))
+    st.info(tr(NOTE_KEY))
 
 
 def page_settings():

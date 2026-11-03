@@ -98,3 +98,29 @@ class FakeNotifier:
 @pytest.fixture()
 def notifier():
     return FakeNotifier()
+
+
+class ShopifyMockServer(SimServer):
+    """Same lifecycle as SimServer but serves the Shopify REST API mock."""
+
+    def __init__(self, data):
+        from ecomplatform.simulators.shopify_mock import create_shopify_mock
+        self.dataset = data
+        self.app = create_shopify_mock(data, faults=Faults())
+        self.port = _free_port()
+        self.url = f"http://127.0.0.1:{self.port}"
+        self.server = uvicorn.Server(uvicorn.Config(self.app, host="127.0.0.1", port=self.port, log_level="error"))
+        self.thread = threading.Thread(target=self.server.run, daemon=True)
+
+
+@pytest.fixture()
+def shopify(monkeypatch):
+    from ecomplatform.simulators.shopify_mock import CLIENT_ID, CLIENT_SECRET, generate_shopify
+    s = ShopifyMockServer(generate_shopify(n_orders=60, seed=11, as_of=AS_OF)).start()
+    monkeypatch.setenv("SHOPIFY_STORE_URL", s.url)
+    monkeypatch.delenv("SHOPIFY_ACCESS_TOKEN", raising=False)
+    monkeypatch.setenv("SHOPIFY_CLIENT_ID", CLIENT_ID)
+    monkeypatch.setenv("SHOPIFY_CLIENT_SECRET", CLIENT_SECRET)
+    monkeypatch.setenv("SHOPIFY_API_VERSION", "2026-01")
+    yield s
+    s.stop()

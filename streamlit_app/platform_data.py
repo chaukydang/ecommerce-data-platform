@@ -3,11 +3,12 @@
 Backends
   bigquery (default when GCP_PROJECT_ID is set): uses Application Default Credentials (gcloud auth application-default login)
   duckdb   (DASH_DUCKDB_PATH): offline demo/test against the file written by `scripts/run_local_demo.py`
+Other env: DASH_DATASET (reporting dataset, e.g. platform_reporting_shopify), DASH_SIMULATED=0 (real-data labels)
 """
 from __future__ import annotations
 
 import os
-import re
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -47,8 +48,9 @@ class BigQueryBackend:
 class DuckDBBackend:
     """Creates the reporting views in the DuckDB file (BigQuery SQL transpiled with sqlglot) if they are missing."""
 
-    def __init__(self, path: str, dataset: str = "platform_reporting"):
-        self.path, self.dataset = path, dataset
+    def __init__(self, path: str, dataset: str = "platform_reporting", marts: str = "platform_marts",
+                 raw_tables: list[str] | None = None):
+        self.path, self.dataset, self.marts, self.raw_tables = path, dataset, marts, raw_tables
         self._ensure_views()
 
     def _con(self, read_only: bool = True):
@@ -61,14 +63,15 @@ class DuckDBBackend:
             have = con.execute("select count(*) from information_schema.tables where table_schema = ?", [self.dataset]).fetchone()[0]
             if have >= 7:
                 return
-            import sqlglot
-            sql = VIEWS_SQL.read_text()
-            sql = re.sub(r"`[A-Za-z0-9\-]+\.(?=[a-z_]+\.[a-z_]+`)", "`", sql)               # drop the project prefix
-            sql = re.sub(r"`([a-z_]+\.[a-z_]+(?:\.[a-z_]+)?)`", r"\1", sql)
+            try:
+                from ecomplatform.reporting_views import duckdb_statements, render
+            except ImportError:                                           # running without `pip install -e .`
+                sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+                from ecomplatform.reporting_views import duckdb_statements, render
+            sql = render("local", marts=self.marts, reporting=self.dataset, raw_tables=self.raw_tables)
             con.execute(f"create schema if not exists {self.dataset}")
-            for st in sqlglot.parse(sql, read="bigquery"):
-                if st is not None and isinstance(st, sqlglot.exp.Create) and st.args.get("kind") == "VIEW":
-                    con.execute(st.sql(dialect="duckdb"))
+            for st in duckdb_statements(sql, "local"):
+                con.execute(st)
         finally:
             con.close()
 
@@ -82,7 +85,9 @@ class DuckDBBackend:
 
 def get_backend():
     if backend_name() == "duckdb":
-        return DuckDBBackend(os.environ["DASH_DUCKDB_PATH"])
+        raw = [t for t in os.getenv("DASH_RAW_TABLES", "").split(",") if t] or None
+        return DuckDBBackend(os.environ["DASH_DUCKDB_PATH"], os.getenv("DASH_DATASET", "platform_reporting"),
+                             os.getenv("DASH_MARTS", "platform_marts"), raw)
     project = os.getenv("GCP_PROJECT_ID")
     if not project:
         raise RuntimeError("Set GCP_PROJECT_ID (BigQuery) or DASH_DUCKDB_PATH (offline demo).")

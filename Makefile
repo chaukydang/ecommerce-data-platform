@@ -1,4 +1,4 @@
-.PHONY: dashboard demo-bq install test test-unit test-integration lint demo simulator dbt-local up down
+.PHONY: shopify dashboard demo-bq install test test-unit test-integration lint demo simulator dbt-local up down
 
 install:            ## dev install (simulator + DuckDB/dbt + test deps)
 	pip install -e ".[sim,local,bigquery,dev,postgres]"
@@ -26,6 +26,9 @@ demo-bq:            ## same demo on your own BigQuery project (free sandbox OK):
 
 dashboard:         ## Streamlit dashboard on BigQuery: make dashboard PROJECT=my-project  (offline: DASH_DUCKDB_PATH=...)
 	GCP_PROJECT_ID=$(PROJECT) streamlit run streamlit_app/platform_dashboard.py
+
+shopify:           ## real Shopify dev-store data: make shopify PROJECT=my-project (needs SHOPIFY_* env, see docs/shopify_quickstart.md)
+	python scripts/run_shopify.py --backend bigquery --project $(PROJECT)
 
 dbt-local:          ## build the platform dbt models against .demo/warehouse.duckdb
 	DUCKDB_PATH=.demo/warehouse.duckdb dbt build --select path:models/platform --target local \

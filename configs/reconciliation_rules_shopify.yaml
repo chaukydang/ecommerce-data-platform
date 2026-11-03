@@ -1,0 +1,14 @@
+# Profile "shopify" (PLATFORM_PROFILE=shopify): real Shopify store data. Only orders, payments (transactions) and refunds are
+# available, so OMS and settlement rules are disabled instead of reporting everything as "missing".
+base: reconciliation_rules.yaml
+tables:
+  marketplace_orders: raw_shopify.orders
+  payments: raw_shopify.payments
+  refunds: raw_shopify.refunds
+disable:
+  - ORD_MISSING_IN_OMS
+  - OMS_DUPLICATE_ORDER
+  - ORD_AMOUNT_MISMATCH
+  - SETTLE_MISSING
+  - SETTLE_FORMULA_MISMATCH
+  - SETTLE_GROSS_MISMATCH

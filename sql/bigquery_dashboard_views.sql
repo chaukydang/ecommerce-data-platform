@@ -125,6 +125,7 @@ FROM totals t CROSS JOIN findings f;
 
 -- ---------- PAGE 3: PIPELINE HEALTH (derived from the raw layer) ------------------------
 
+-- BEGIN v_pipeline_health
 -- Per raw table: volume, versions, freshness. (Full audit/retry history lives in the operational DB.)
 CREATE OR REPLACE VIEW `ecommerce-data-platform-513615.platform_reporting.v_pipeline_health` AS
 WITH raw_stats AS (
@@ -153,3 +154,4 @@ SELECT
   TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(ingested_at), MINUTE) AS minutes_since_last_load
 FROM raw_stats
 GROUP BY dataset;
+-- END v_pipeline_health

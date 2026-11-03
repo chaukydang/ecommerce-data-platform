@@ -169,8 +169,10 @@ def run_reconciliation(
     with engine.begin() as c:
         c.execute(insert(db.reconciliation_runs).values(reconciliation_run_id=run_id, started_at=started, as_of=as_of))
 
-    tables = {name: reader.read_latest(fq) for name, fq in rules_cfg["tables"].items()}
-    rules = [r for r in rules_cfg["rules"] if not rule_ids or r["id"] in rule_ids]
+    disabled = set(rules_cfg.get("disable", []))
+    rules = [r for r in rules_cfg["rules"] if (not rule_ids or r["id"] in rule_ids) and r["id"] not in disabled]
+    needed = {r[k] for r in rules for k in ("left", "right", "table") if k in r}       # only read what enabled rules use
+    tables = {name: reader.read_latest(fq) for name, fq in rules_cfg["tables"].items() if name in needed}
     summ = ReconciliationSummary(run_id=run_id, as_of=as_of)
     detected: list[Detected] = []
     for rule in rules:

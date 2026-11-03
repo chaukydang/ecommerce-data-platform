@@ -154,3 +154,53 @@ sources:
             currency:          {type: string,    required: true}
             settled_at:        {type: timestamp, required: true}
             updated_at:        {type: timestamp, required: true}
+
+  # ---- REAL source: Shopify Admin REST API (development store). Needs SHOPIFY_STORE_URL + credentials, see docs/shopify_quickstart.md
+  shopify:
+    connector: shopify
+    base_url_env: SHOPIFY_STORE_URL
+    token_env: SHOPIFY_ACCESS_TOKEN        # or SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET (Dev Dashboard app)
+    dataset: raw_shopify
+    page_size: 250
+    entities:
+      orders:
+        table: orders
+        schema:
+          key: [order_id]
+          updated_field: updated_at
+          fields:
+            order_id:     {type: string,    required: true}
+            channel:      {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            customer_id:  {type: string}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+      payments:
+        table: payments
+        schema:
+          key: [payment_id]
+          updated_field: updated_at
+          fields:
+            payment_id:  {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            payment_ref: {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            paid_at:     {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+      refunds:
+        table: refunds
+        schema:
+          key: [refund_id]
+          updated_field: updated_at
+          fields:
+            refund_id:   {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            refund_ref:  {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            status:      {type: string,    required: true}
+            refunded_at: {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}

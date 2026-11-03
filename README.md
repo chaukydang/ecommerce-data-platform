@@ -232,7 +232,7 @@ Shopify/TikTok Shop integration.
 
 ```bash
 pip install -e ".[sim,local,dev]"
-make test     # 79 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
+make test     # 88 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
 make demo     # simulator -> ingest -> dbt on DuckDB -> reconcile -> freshness/DQ -> alerts
 ```
 
@@ -253,6 +253,8 @@ GCP_PROJECT_ID=YOUR_PROJECT_ID python -m streamlit run streamlit_app/platform_da
 | ![Overview](docs/img/dashboard_overview.png) | ![Money matching](docs/img/dashboard_money_matching.png) |
 
 *(screenshots from the offline DuckDB demo; simulated data)*
+
+**Real data:** the `shopify` source reads a Shopify development store through the Admin REST API (orders, payments, refunds) into separate `*_shopify` datasets - see [docs/shopify_quickstart.md](docs/shopify_quickstart.md) (`python scripts/run_shopify.py --backend bigquery --project YOUR_PROJECT`).
 
 Run on your own free BigQuery: [quickstart](docs/bigquery_free_quickstart.md).
 Docs: [architecture](docs/architecture.md) · [reconciliation rules](docs/reconciliation_rules.md) · [data dictionary](docs/data_dictionary.md) ·

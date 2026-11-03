@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 
 from ecomplatform import db
-from ecomplatform.config import load_sources, load_yaml
+from ecomplatform.config import load_profile_yaml, load_sources
 from ecomplatform.ingestion.core.batch_writer import BigQuerySink, DuckDBSink, Sink
 from ecomplatform.ingestion.runner import RunResult, run_ingestion
 from ecomplatform.monitoring.alerting import Alert, AlertManager, LarkNotifier
@@ -59,7 +59,7 @@ def ingest(source: str, entity: str) -> dict:
 
 def reconcile(as_of: datetime | None = None) -> dict:
     engine = get_engine()
-    s: ReconciliationSummary = run_reconciliation(get_reader(), engine, load_yaml("reconciliation_rules.yaml"),
+    s: ReconciliationSummary = run_reconciliation(get_reader(), engine, load_profile_yaml("reconciliation_rules.yaml"),
                                                   as_of=as_of, alerts=get_alerts(engine))
     return {"run_id": s.run_id, "matched_pct": s.matched_pct, "confirmed": s.confirmed, "timing": s.timing,
             "confirmed_difference": s.confirmed_difference, **s.store_stats}
@@ -68,8 +68,8 @@ def reconcile(as_of: datetime | None = None) -> dict:
 def monitor() -> dict:
     engine = get_engine()
     alerts = get_alerts(engine)
-    stale = evaluate_and_alert(check_freshness(engine, load_yaml("freshness.yaml")), alerts)
-    results = run_quality_checks(get_reader(), engine, load_yaml("quality.yaml"), alerts=alerts)
+    stale = evaluate_and_alert(check_freshness(engine, load_profile_yaml("freshness.yaml")), alerts)
+    results = run_quality_checks(get_reader(), engine, load_profile_yaml("quality.yaml"), alerts=alerts)
     failed = [r for r in results if not r.passed]
     return {"freshness_violations": stale, "dq_checks": len(results), "dq_failed": len(failed)}
 
