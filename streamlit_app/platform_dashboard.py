@@ -86,12 +86,12 @@ def filters(page: str, sales: pd.DataFrame, with_view: bool = True):
     return tf, (None if ch == "__all__" else ch), gran
 
 
-def activity_card(f: pd.DataFrame, gran: str, height: int = 352) -> str:
+def activity_card(f: pd.DataFrame, gran: str, height: int = 352, width: int = 900) -> str:
     agg = story.aggregate(f, gran)
     span_years = len({d.year for d in agg["period"]}) > 1
     fmt = {"day": "%d %b %y" if span_years else "%d %b", "week": "%d %b %y" if span_years else "%d %b", "month": "%b %Y"}[gran]
     labels = [d.strftime(fmt) for d in agg["period"]]
-    chart = ui.line_chart(labels, agg["net_sales"].tolist(), fmt=lambda v: story.money(v).replace(".00", ""), peak_label=tr("peak"))
+    chart = ui.line_chart(labels, agg["net_sales"].tolist(), fmt=lambda v: story.money(v).replace(".00", ""), peak_label=tr("peak"), width=width, height=max(220, height - 60))
     return (f'<div class="card" style="min-height:{height}px"><h4>{ui.esc(tr("activity"))} · '
             f'<span style="color:#9CA3AF">{ui.esc(tr("activity_sub", unit=tr(gran).lower()))}</span></h4>{chart}</div>')
 
@@ -142,7 +142,7 @@ def page_overview():
                               ui.meter(int(kpi["orders_with_confirmed_issue"]) / max(1, int(kpi["orders_checked"])))), unsafe_allow_html=True)
         r2[2].markdown(ui.kpi(tr("kpi_amount"), story.money(kpi["unresolved_amount_difference"]), "", "", "", hint=tr("g_confirmed_d")),
                        unsafe_allow_html=True)
-    right.markdown("".join(x.strip() for x in activity_card(f, gran, 352).splitlines()), unsafe_allow_html=True)
+    right.markdown("".join(x.strip() for x in activity_card(f, gran, 352, width=560).splitlines()), unsafe_allow_html=True)
     st.write("")
 
     health = story.check_health(summary)

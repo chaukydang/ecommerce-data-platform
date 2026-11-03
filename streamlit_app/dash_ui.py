@@ -18,7 +18,8 @@ CSS = f"""
 .stApp, .stApp .stMarkdown, .stApp .stMarkdown *, .stApp label, .stApp input, .stApp button p, .stApp [data-baseweb="select"] *,
 .stApp [data-testid="stMetric"] * {{ font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; }}
 .stApp {{ background: #F3F4F6; color: {INK}; }}
-header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"], footer {{ display: none !important; }}
+[data-testid="stDecoration"], [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"], footer {{ display: none !important; }}
+header[data-testid="stHeader"] {{ background: transparent !important; }}                 /* keep the header: it holds the button that re-opens the sidebar */
 .block-container {{ padding: 1.8rem 2.2rem 3rem; max-width: 1320px; }}
 [data-testid="stSidebar"] {{ background: #fff; border-right: 0; box-shadow: 0 0 40px rgba(16,24,40,.04); }}
 [data-testid="stSidebar"] > div:first-child {{ padding-top: .6rem; }}
