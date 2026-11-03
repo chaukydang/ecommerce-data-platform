@@ -1,0 +1,10 @@
+# Profile "olist": real marketplace orders + payments only. No OMS, refunds or settlements exist in the dataset.
+base: reconciliation_rules.yaml
+tables:
+  marketplace_orders: raw_olist.orders
+  payments: raw_olist.payments
+  refunds: raw_olist.refunds
+  oms_orders: raw_olist_stub.orders
+  settlements: raw_olist.settlements
+disable: [ORD_MISSING_IN_OMS, OMS_DUPLICATE_ORDER, ORD_AMOUNT_MISMATCH, REF_WITHOUT_PAYMENT, REF_EXCEEDS_PAID, REF_DUPLICATE_REF,
+          SETTLE_MISSING, SETTLE_FORMULA_MISMATCH, SETTLE_GROSS_MISMATCH]

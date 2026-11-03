@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import os
 
 import pandas as pd
 from dash_i18n import check_name, finding_name, make_tr
@@ -9,13 +10,17 @@ from dash_i18n import check_name, finding_name, make_tr
 TIMEFRAMES = {"all_time": None, "last_7": 7, "last_14": 14, "last_30": 30}
 
 
+CURRENCY = os.getenv("DASH_CURRENCY", "$")          # e.g. "R$" for Olist, "₫" for VND
+
+
 def money(x: float) -> str:
     x = float(x or 0)
+    c = CURRENCY
     if abs(x) >= 1_000_000:
-        return f"${x / 1_000_000:.2f}M"
+        return f"{c}{x / 1_000_000:.2f}M"
     if abs(x) >= 10_000:
-        return f"${x / 1000:.1f}K"
-    return f"${x:,.0f}" if abs(x) >= 1000 else f"${x:,.2f}"
+        return f"{c}{x / 1000:.1f}K"
+    return f"{c}{x:,.0f}" if abs(x) >= 1000 else f"{c}{x:,.2f}"
 
 
 def pct(x: float, digits: int = 0) -> str:

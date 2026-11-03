@@ -204,3 +204,92 @@ sources:
             status:      {type: string,    required: true}
             refunded_at: {type: timestamp, required: true}
             updated_at:  {type: timestamp, required: true}
+
+  # ---- REAL data: Olist Brazilian E-Commerce (Kaggle CSV files, 2016-2018). Set OLIST_DATA_DIR, see docs/olist_quickstart.md
+  olist:
+    connector: olist
+    dataset: raw_olist
+    initial_lookback_days: 36500        # historical dataset: first run must reach back to 2016
+    page_size: 5000
+    entities:
+      orders:
+        table: orders
+        schema:
+          key: [order_id]
+          updated_field: updated_at
+          fields:
+            order_id:     {type: string,    required: true}
+            channel:      {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            customer_id:  {type: string}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+      payments:
+        table: payments
+        schema:
+          key: [payment_id]
+          updated_field: updated_at
+          fields:
+            payment_id:  {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            payment_ref: {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            paid_at:     {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+
+  # ---- Shopee Open Platform API v2 (needs an approved developer app + shop authorization), see docs/shopee_quickstart.md
+  shopee:
+    connector: shopee
+    base_url_env: SHOPEE_API_HOST
+    dataset: raw_shopee
+    page_size: 100
+    entities:
+      orders:
+        table: orders
+        schema:
+          key: [order_id]
+          updated_field: updated_at
+          fields:
+            order_id:     {type: string,    required: true}
+            channel:      {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            customer_id:  {type: string}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+      payments:
+        table: payments
+        schema:
+          key: [payment_id]
+          updated_field: updated_at
+          fields:
+            payment_id:  {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            payment_ref: {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            paid_at:     {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+      settlements:
+        table: settlements
+        schema:
+          key: [settlement_id]
+          updated_field: updated_at
+          fields:
+            settlement_id:     {type: string,    required: true}
+            order_id:          {type: string,    required: true}
+            channel:           {type: string,    required: true}
+            gross_amount:      {type: number,    required: true}
+            seller_discount:   {type: number,    required: true}
+            refund_amount:     {type: number,    required: true}
+            commission_fee:    {type: number,    required: true}
+            shipping_fee:      {type: number,    required: true}
+            adjustment_amount: {type: number,    required: true}
+            net_payout:        {type: number,    required: true}
+            currency:          {type: string,    required: true}
+            settled_at:        {type: timestamp, required: true}
+            updated_at:        {type: timestamp, required: true}

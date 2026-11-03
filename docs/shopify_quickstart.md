@@ -30,14 +30,14 @@ export SHOPIFY_CLIENT_SECRET=...
 # optional: export SHOPIFY_API_VERSION=2026-01
 
 gcloud auth application-default login   # once, for BigQuery
-python scripts/run_shopify.py --backend bigquery --project YOUR_PROJECT_ID --location US
-# offline warehouse file instead of BigQuery: python scripts/run_shopify.py --backend duckdb
+python scripts/run_profile.py --profile shopify --backend bigquery --project YOUR_PROJECT_ID --location US
+# offline warehouse file instead of BigQuery: python scripts/run_profile.py --profile shopify --backend duckdb
 ```
 
 Then the dashboard (the command is also printed at the end of the run):
 
 ```bash
-DASH_DATASET=platform_reporting_shopify DASH_SIMULATED=0 GCP_PROJECT_ID=YOUR_PROJECT_ID BQ_LOCATION=US \
+DASH_DATASET=platform_reporting_shopify DASH_SIMULATED=0 DASH_SOURCE_LABEL="Shopify test store" GCP_PROJECT_ID=YOUR_PROJECT_ID BQ_LOCATION=US \
   python -m streamlit run streamlit_app/platform_dashboard.py
 ```
 

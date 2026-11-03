@@ -9,8 +9,11 @@ import pytest
 
 from conftest import AS_OF, FakeNotifier
 from ecomplatform.monitoring.alerting import AlertManager
+from ecomplatform.profile_pipeline import PROFILES, run_profile
 from ecomplatform.reconciliation.store import ExceptionStore
-from ecomplatform.shopify_pipeline import MARTS, REPORTING, run_shopify
+
+P = PROFILES["shopify"]
+MARTS, REPORTING = P.marts, P.reporting
 
 st_testing = pytest.importorskip("streamlit.testing.v1")
 pytest.importorskip("sqlglot")
@@ -24,7 +27,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.dbt,
 def shopify_run(shopify, engine, duck_path, tmp_path, monkeypatch):
     monkeypatch.setenv("PLATFORM_PROFILE", "shopify")                 # restored after the test
     notifier = FakeNotifier()
-    run = run_shopify("duckdb", engine=engine, duckdb_path=duck_path, now=NOW, target_path=tmp_path,
+    run = run_profile("shopify", "duckdb", engine=engine, duckdb_path=duck_path, now=NOW, target_path=tmp_path,
                       alerts=AlertManager(engine, notifier))
     assert run.dbt_ok, run.dbt_output
     return run, notifier
@@ -65,6 +68,7 @@ def test_dashboard_shows_shopify_data_with_real_labels(shopify_run, shopify, duc
     monkeypatch.setenv("DASH_DATASET", REPORTING)
     monkeypatch.setenv("DASH_MARTS", MARTS)
     monkeypatch.setenv("DASH_SIMULATED", "0")
+    monkeypatch.setenv("DASH_SOURCE_LABEL", "Shopify test store")
     monkeypatch.setenv("DASH_PAGE", page)
     at = st_testing.AppTest.from_file(str(ROOT / "streamlit_app/platform_dashboard.py"), default_timeout=90)
     at.session_state["lang"] = "en"

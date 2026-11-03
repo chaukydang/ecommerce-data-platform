@@ -124,3 +124,32 @@ def shopify(monkeypatch):
     monkeypatch.setenv("SHOPIFY_API_VERSION", "2026-01")
     yield s
     s.stop()
+
+
+class ShopeeMockServer(SimServer):
+    def __init__(self, data):
+        from ecomplatform.simulators.shopee_mock import create_shopee_mock
+        self.dataset = data
+        self.app = create_shopee_mock(data, faults=Faults())
+        self.port = _free_port()
+        self.url = f"http://127.0.0.1:{self.port}"
+        self.server = uvicorn.Server(uvicorn.Config(self.app, host="127.0.0.1", port=self.port, log_level="error"))
+        self.thread = threading.Thread(target=self.server.run, daemon=True)
+
+    @property
+    def state(self):
+        return self.app.state.shopee
+
+
+@pytest.fixture()
+def shopee(monkeypatch, tmp_path):
+    from ecomplatform.simulators.shopee_mock import PARTNER_ID, PARTNER_KEY, SHOP_ID, generate_shopee
+    s = ShopeeMockServer(generate_shopee(n_orders=70, seed=21, as_of=AS_OF)).start()
+    monkeypatch.setenv("SHOPEE_API_HOST", s.url)
+    monkeypatch.setenv("SHOPEE_PARTNER_ID", PARTNER_ID)
+    monkeypatch.setenv("SHOPEE_PARTNER_KEY", PARTNER_KEY)
+    monkeypatch.setenv("SHOPEE_SHOP_ID", SHOP_ID)
+    monkeypatch.setenv("SHOPEE_REFRESH_TOKEN", s.state["refresh"])
+    monkeypatch.setenv("SHOPEE_TOKEN_FILE", str(tmp_path / "shopee_tokens.json"))
+    yield s
+    s.stop()

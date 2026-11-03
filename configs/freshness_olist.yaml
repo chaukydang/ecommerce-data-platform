@@ -1,0 +1,4 @@
+# Olist is a static historical dataset (2016-2018): freshness is measured on the *load*, generous target.
+datasets:
+  - {dataset: raw_olist.orders,   pipeline: ingest_olist_orders,   max_delay_minutes: 10080, severity: WARNING}
+  - {dataset: raw_olist.payments, pipeline: ingest_olist_payments, max_delay_minutes: 10080, severity: WARNING}

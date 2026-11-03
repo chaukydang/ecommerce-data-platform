@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-"""Run the platform on REAL Shopify data (a Shopify development store).
+"""Run the platform on a real / real-shaped source profile: shopify | shopee | olist.
 
-    export SHOPIFY_STORE_URL=https://your-store.myshopify.com
-    export SHOPIFY_CLIENT_ID=...  SHOPIFY_CLIENT_SECRET=...         # Dev Dashboard app (or SHOPIFY_ACCESS_TOKEN=...)
-    python scripts/run_shopify.py --backend bigquery --project YOUR_PROJECT --location US
-    python scripts/run_shopify.py --backend duckdb                    # offline warehouse file, same logic
+    python scripts/run_profile.py --profile olist  --backend bigquery --project YOUR_PROJECT     # needs OLIST_DATA_DIR (Kaggle CSVs)
+    python scripts/run_profile.py --profile shopee --backend bigquery --project YOUR_PROJECT     # needs SHOPEE_* credentials
+    python scripts/run_profile.py --profile shopify --backend duckdb                             # offline warehouse file
 
-Then:  DASH_DATASET=platform_reporting_shopify DASH_SIMULATED=0 GCP_PROJECT_ID=YOUR_PROJECT python -m streamlit run streamlit_app/platform_dashboard.py
-See docs/shopify_quickstart.md.
+See docs/olist_quickstart.md, docs/shopee_quickstart.md, docs/shopify_quickstart.md.
 """
 from __future__ import annotations
 
@@ -21,32 +19,33 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from ecomplatform import db  # noqa: E402
 from ecomplatform.ingestion.core.retry_policy import IngestionError  # noqa: E402
+from ecomplatform.profile_pipeline import PROFILES, dashboard_command, run_profile  # noqa: E402
 from ecomplatform.reconciliation.store import ExceptionStore  # noqa: E402
-from ecomplatform.shopify_pipeline import REPORTING, run_shopify  # noqa: E402
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--profile", choices=sorted(PROFILES), required=True)
     ap.add_argument("--backend", choices=["duckdb", "bigquery"], default="duckdb")
     ap.add_argument("--project", default=os.getenv("GCP_PROJECT_ID"))
     ap.add_argument("--location", default=os.getenv("BQ_LOCATION", "US"))
-    ap.add_argument("--workdir", default=".shopify")
+    ap.add_argument("--workdir", default=None)
     ap.add_argument("--skip-dbt", action="store_true")
     a = ap.parse_args()
     if a.backend == "bigquery" and not a.project:
         ap.error("--project (or GCP_PROJECT_ID) is required for the bigquery backend")
-    work = Path(a.workdir).resolve()
+    work = Path(a.workdir or f".{a.profile}").resolve()
     work.mkdir(parents=True, exist_ok=True)
     engine = db.init_db(db.get_engine(f"sqlite:///{work / 'platform.db'}"))
-    duck = str(work / "warehouse.duckdb")
     try:
-        r = run_shopify(a.backend, engine=engine, project=a.project, location=a.location, duckdb_path=duck, skip_dbt=a.skip_dbt)
+        r = run_profile(a.profile, a.backend, engine=engine, project=a.project, location=a.location,
+                        duckdb_path=str(work / "warehouse.duckdb"), skip_dbt=a.skip_dbt)
     except IngestionError as exc:
-        print(f"\nIngestion failed ({exc.category}): {exc}\nCheck SHOPIFY_STORE_URL and the credentials (docs/shopify_quickstart.md).")
+        print(f"\nIngestion failed ({exc.category}): {exc}\nCheck the credentials / data folder (docs/{a.profile}_quickstart.md).")
         return 2
-    print("== ingestion (Shopify Admin REST API)")
+    print(f"== ingestion ({a.profile})")
     for e, res in r.ingest.items():
-        print(f"   {e:<9} {res.status:<8} extracted={res.extracted:<5} loaded={res.loaded:<5} rejected={res.rejected} retries={res.retries}")
+        print(f"   {e:<12} {res.status:<8} extracted={res.extracted:<7} loaded={res.loaded:<7} rejected={res.rejected} retries={res.retries}")
     if r.dbt_ok is False:
         print("== dbt build FAILED\n" + r.dbt_output)
         return 1
@@ -55,8 +54,7 @@ def main() -> int:
               f"timing={r.recon.timing} | unresolved={ExceptionStore(engine).unresolved_confirmed_amount():.2f}")
     print(f"== monitoring: freshness violations={r.stale}, data quality {sum(q.passed for q in r.quality)}/{len(r.quality)} checks passed")
     if a.backend == "bigquery":
-        print(f"\nDashboard:\n  DASH_DATASET={REPORTING} DASH_SIMULATED=0 GCP_PROJECT_ID={a.project} BQ_LOCATION={a.location} "
-              f"python -m streamlit run streamlit_app/platform_dashboard.py")
+        print("\nDashboard:\n  " + dashboard_command(PROFILES[a.profile], a.project, a.location))
     return 0
 
 

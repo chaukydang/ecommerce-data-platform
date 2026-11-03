@@ -232,3 +232,9 @@ platform.db
 .env
 .pytest_cache/
 .ruff_cache/
+
+# credentials / tokens (never commit)
+.shopee_tokens.json
+.shopify/
+.olist/
+.shopee/

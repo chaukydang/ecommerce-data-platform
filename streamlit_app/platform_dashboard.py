@@ -27,6 +27,7 @@ st.set_page_config(page_title="Omnichannel Data Platform", page_icon="📊", lay
 ui.inject_css()
 
 SIMULATED = os.getenv("DASH_SIMULATED", "1") != "0"          # DASH_SIMULATED=0 for real (Shopify) data
+SOURCE_LABEL = os.getenv("DASH_SOURCE_LABEL", "")
 CHIP_KEY, NOTE_KEY = ("sim_chip", "sim_note") if SIMULATED else ("live_chip", "live_note")
 
 if "lang" not in st.session_state:
@@ -56,9 +57,13 @@ def load_all():
 
 
 # ------------------------------------------------------------------ shared widgets
+def chip_text() -> str:
+    return SOURCE_LABEL if (not SIMULATED and SOURCE_LABEL) else tr(CHIP_KEY)
+
+
 def header(title: str, csv: tuple[str, bytes] | None = None) -> None:
     a, b = st.columns([8, 2])
-    a.markdown(f'<div class="page-title">{ui.esc(title)}<span class="chip">{ui.esc(tr(CHIP_KEY))}</span></div>', unsafe_allow_html=True)
+    a.markdown(f'<div class="page-title">{ui.esc(title)}<span class="chip">{ui.esc(chip_text())}</span></div>', unsafe_allow_html=True)
     if csv:
         b.download_button("⬇  " + tr("download"), csv[1], csv[0], "text/csv", use_container_width=True)
     ui.render('<hr class="page-rule">')
@@ -221,7 +226,7 @@ def page_recon():
                           tr("col_status"): v["finding_class"].map(lambda x: tr("confirmed" if x == "CONFIRMED" else "timing")),
                           tr("col_amount"): v["amount_difference"], tr("col_created"): v["created_at"]})
     st.dataframe(shown, width="stretch", hide_index=True, column_config={
-        tr("col_amount"): st.column_config.NumberColumn(format="$%.2f"),
+        tr("col_amount"): st.column_config.NumberColumn(format=f"{story.CURRENCY}%.2f"),
         tr("col_created"): st.column_config.DatetimeColumn(format="YYYY-MM-DD HH:mm")})
 
 
@@ -251,7 +256,7 @@ def page_guide():
     pairs = [(tr(k), tr(k + "_d")) for k in ("g_finding", "g_confirmed", "g_timing", "g_settle", "g_oms", "g_clean", "g_fresh")]
     ui.render(ui.card(tr("guide_glossary"), ui.glossary(pairs)))
     st.write("")
-    st.info(tr(NOTE_KEY))
+    st.info(tr(NOTE_KEY, source=SOURCE_LABEL or "-") if not SIMULATED else tr(NOTE_KEY))
 
 
 def page_settings():

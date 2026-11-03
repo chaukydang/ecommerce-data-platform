@@ -232,7 +232,7 @@ Shopify/TikTok Shop integration.
 
 ```bash
 pip install -e ".[sim,local,dev]"
-make test     # 88 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
+make test     # 98 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
 make demo     # simulator -> ingest -> dbt on DuckDB -> reconcile -> freshness/DQ -> alerts
 ```
 
@@ -254,7 +254,13 @@ GCP_PROJECT_ID=YOUR_PROJECT_ID python -m streamlit run streamlit_app/platform_da
 
 *(screenshots from the offline DuckDB demo; simulated data)*
 
-**Real data:** the `shopify` source reads a Shopify development store through the Admin REST API (orders, payments, refunds) into separate `*_shopify` datasets - see [docs/shopify_quickstart.md](docs/shopify_quickstart.md) (`python scripts/run_shopify.py --backend bigquery --project YOUR_PROJECT`).
+**Real(-shaped) data profiles** - each runs ingest -> dbt -> reconciliation -> monitoring -> dashboard in its own datasets (`python scripts/run_profile.py --profile <name> --backend bigquery --project YOUR_PROJECT`):
+
+| Profile | Source | What you need |
+|---|---|---|
+| `olist` | **real** marketplace data (Brazil, ~100k orders, Kaggle CSV) | download the CSVs, `OLIST_DATA_DIR` - [docs/olist_quickstart.md](docs/olist_quickstart.md) |
+| `shopee` | Shopee Open Platform v2: orders, payments, escrow/settlement (mock-tested) | approved Shopee developer app - [docs/shopee_quickstart.md](docs/shopee_quickstart.md) |
+| `shopify` | Shopify Admin REST API: orders, payments, refunds (mock-tested) | free development store - [docs/shopify_quickstart.md](docs/shopify_quickstart.md) |
 
 Run on your own free BigQuery: [quickstart](docs/bigquery_free_quickstart.md).
 Docs: [architecture](docs/architecture.md) · [reconciliation rules](docs/reconciliation_rules.md) · [data dictionary](docs/data_dictionary.md) ·

@@ -1,0 +1,20 @@
+volume_change_pct: 100
+datasets:
+  - dataset: raw_olist.orders
+    source: olist
+    entity: orders
+    pk_unique: [order_id]
+    required: [order_id, channel, status, currency, created_at]
+    accepted_values:
+      status: [PENDING, PAID, SHIPPED, COMPLETED, CANCELLED]
+    non_negative: [total_amount]
+    severity: CRITICAL
+  - dataset: raw_olist.payments
+    source: olist
+    entity: payments
+    pk_unique: [payment_id]
+    required: [payment_id, order_id, payment_ref, amount, currency]
+    non_negative: [amount]
+    relationships:
+      - {column: order_id, to: raw_olist.orders, to_column: order_id}
+    severity: CRITICAL

@@ -1,0 +1,4 @@
+datasets:
+  - {dataset: raw_shopee.orders,      pipeline: ingest_shopee_orders,      max_delay_minutes: 60,   severity: CRITICAL}
+  - {dataset: raw_shopee.payments,    pipeline: ingest_shopee_payments,    max_delay_minutes: 60,   severity: CRITICAL}
+  - {dataset: raw_shopee.settlements, pipeline: ingest_shopee_settlements, max_delay_minutes: 1440, severity: WARNING}

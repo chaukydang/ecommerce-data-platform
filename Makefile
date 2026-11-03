@@ -28,7 +28,7 @@ dashboard:         ## Streamlit dashboard on BigQuery: make dashboard PROJECT=my
 	GCP_PROJECT_ID=$(PROJECT) streamlit run streamlit_app/platform_dashboard.py
 
 shopify:           ## real Shopify dev-store data: make shopify PROJECT=my-project (needs SHOPIFY_* env, see docs/shopify_quickstart.md)
-	python scripts/run_shopify.py --backend bigquery --project $(PROJECT)
+	python scripts/run_profile.py --profile shopify --backend bigquery --project $(PROJECT)
 
 dbt-local:          ## build the platform dbt models against .demo/warehouse.duckdb
 	DUCKDB_PATH=.demo/warehouse.duckdb dbt build --select path:models/platform --target local \

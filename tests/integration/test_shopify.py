@@ -38,8 +38,8 @@ def test_ingests_orders_payments_refunds_with_canonical_mapping(shopify, engine,
     o = data.orders[0]
     row = sink.query_df(f"select * from raw_shopify.orders where order_id = 'SHP-{o['id']}'").iloc[0]
     assert row.total_amount == pytest.approx(float(o["total_price"])) and row.channel == "shopify" and row.currency == "USD"
-    from datetime import UTC, datetime
-    utc = datetime.fromisoformat(o["created_at"]).astimezone(UTC).replace(tzinfo=None)   # '+07:00' store time -> stored as UTC
+    from datetime import datetime, timezone
+    utc = datetime.fromisoformat(o["created_at"]).astimezone(timezone.utc).replace(tzinfo=None)   # '+07:00' store time -> stored as UTC
     assert row.created_at == utc and o["created_at"].endswith("+07:00")
     statuses = set(sink.query_df("select distinct status from raw_shopify.orders")["status"])
     assert statuses <= {"PENDING", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"} and {"COMPLETED", "PENDING", "CANCELLED"} <= statuses

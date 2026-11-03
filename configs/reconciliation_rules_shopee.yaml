@@ -1,0 +1,9 @@
+# Profile "shopee": orders, buyer payments and escrow (settlement). No OMS and no refund feed in this connector.
+base: reconciliation_rules.yaml
+tables:
+  marketplace_orders: raw_shopee.orders
+  payments: raw_shopee.payments
+  settlements: raw_shopee.settlements
+  refunds: raw_shopee.refunds
+  oms_orders: raw_shopee_stub.orders
+disable: [ORD_MISSING_IN_OMS, OMS_DUPLICATE_ORDER, ORD_AMOUNT_MISMATCH, REF_WITHOUT_PAYMENT, REF_EXCEEDS_PAID, REF_DUPLICATE_REF]
