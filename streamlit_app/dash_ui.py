@@ -122,6 +122,20 @@ def nice_max(v: float) -> float:
     return 10 * exp
 
 
+def _monotone_path(pts: list[tuple[float, float]]) -> str:
+    """Smooth curve through every point (monotone cubic / Fritsch-Carlson): no overshoot, the peak stays on the line."""
+    n = len(pts)
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    dx = [xs[i + 1] - xs[i] for i in range(n - 1)]
+    sl = [(ys[i + 1] - ys[i]) / dx[i] for i in range(n - 1)]
+    m = [sl[0]] + [0.0 if sl[i - 1] * sl[i] <= 0 else 2 * sl[i - 1] * sl[i] / (sl[i - 1] + sl[i]) for i in range(1, n - 1)] + [sl[-1]]
+    d = f"M{xs[0]:.1f},{ys[0]:.1f}"
+    for i in range(n - 1):
+        h = dx[i] / 3
+        d += f" C{xs[i] + h:.1f},{ys[i] + m[i] * h:.1f} {xs[i + 1] - h:.1f},{ys[i + 1] - m[i + 1] * h:.1f} {xs[i + 1]:.1f},{ys[i + 1]:.1f}"
+    return d
+
+
 def line_chart(labels: list[str], values: list[float], width: int = 900, height: int = 320, fmt=lambda v: f"{v:,.0f}",
                peak_label: str = "Peak") -> str:
     """Smooth line + soft area, 5 gridlines, ~8 x labels, last-point dot and the peak annotated (readable for long series)."""
@@ -147,7 +161,7 @@ def line_chart(labels: list[str], values: list[float], width: int = 900, height:
     step = max(1, math.ceil(n / 8))
     for i in range(0, n, step):
         out.append(f'<text x="{xs[i]:.1f}" y="{height - 10}" text-anchor="middle" font-size="12" fill="#9CA3AF">{esc(labels[i])}</text>')
-    line = "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys, strict=True))     # straight segments: the peak sits exactly on the line
+    line = _monotone_path(list(zip(xs, ys, strict=True)))
     out.append(f'<path d="{line} L{xs[-1]:.1f},{top + plot_h} L{xs[0]:.1f},{top + plot_h} Z" fill="url(#{gid})"/>')
     out.append(f'<path d="{line}" fill="none" stroke="{BLUE}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>')
     k = max(range(n), key=lambda i: values[i])
