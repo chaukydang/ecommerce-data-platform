@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 from pathlib import Path
@@ -13,6 +14,10 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Streamlit caches imported helper modules across reruns; reload them so edits / `git pull` take effect without a server restart.
+for _name in ("dash_i18n", "dash_story", "dash_ui", "platform_data"):
+    if _name in sys.modules:
+        importlib.reload(sys.modules[_name])
 import dash_story as story  # noqa: E402
 import dash_ui as ui  # noqa: E402
 import platform_data as data  # noqa: E402
