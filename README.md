@@ -321,6 +321,5 @@ gs://<your-bucket>/
 
 ## Acknowledgments
 
-* **Upstream project**: [srjain92/e-commerce-data-pipeline](https://github.com/srjain92/e-commerce-data-pipeline), the Olist batch pipeline this work extends.
 * **Data**: [Olist](https://olist.com/) released the Brazilian e-commerce dataset, hosted on [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce).
 * **Community**: the upstream project was built as part of the [Data Engineering Zoomcamp](https://github.com/DataTalksClub/data-engineering-zoomcamp) by DataTalks.Club.
