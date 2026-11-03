@@ -1,0 +1,4 @@
+datasets:
+  - {dataset: raw_omni.orders,   pipeline: ingest_omni_orders,   max_delay_minutes: 1440, severity: WARNING}
+  - {dataset: raw_omni.payments, pipeline: ingest_omni_payments, max_delay_minutes: 1440, severity: WARNING}
+  - {dataset: raw_omni.refunds,  pipeline: ingest_omni_refunds,  max_delay_minutes: 1440, severity: WARNING}

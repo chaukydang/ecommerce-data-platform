@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-"""Run the platform on a real / real-shaped source profile: shopify | shopee | olist.
+"""Run the platform on a real / real-shaped source profile: shopify | shopee | olist | omni.
 
     python scripts/run_profile.py --profile olist  --backend bigquery --project YOUR_PROJECT     # needs OLIST_DATA_DIR (Kaggle CSVs)
     python scripts/run_profile.py --profile shopee --backend bigquery --project YOUR_PROJECT     # needs SHOPEE_* credentials
+    python scripts/run_profile.py --profile omni   --backend bigquery --project YOUR_PROJECT     # simulated Shopee/TikTok/Lazada/Web/POS
     python scripts/run_profile.py --profile shopify --backend duckdb                             # offline warehouse file
 
 See docs/olist_quickstart.md, docs/shopee_quickstart.md, docs/shopify_quickstart.md.

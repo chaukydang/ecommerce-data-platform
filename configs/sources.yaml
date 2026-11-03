@@ -240,6 +240,55 @@ sources:
             paid_at:     {type: timestamp, required: true}
             updated_at:  {type: timestamp, required: true}
 
+  # ---- SIMULATED omnichannel demo (Shopee, TikTok Shop, Lazada, Website, POS; VND; last 12 months), see docs/omni_demo.md
+  omni:
+    connector: omni
+    dataset: raw_omni
+    initial_lookback_days: 400
+    page_size: 5000
+    entities:
+      orders:
+        table: orders
+        schema:
+          key: [order_id]
+          updated_field: updated_at
+          fields:
+            order_id:     {type: string,    required: true}
+            channel:      {type: string,    required: true}
+            status:       {type: string,    required: true}
+            total_amount: {type: number,    required: true}
+            currency:     {type: string,    required: true}
+            customer_id:  {type: string}
+            created_at:   {type: timestamp, required: true}
+            updated_at:   {type: timestamp, required: true}
+      payments:
+        table: payments
+        schema:
+          key: [payment_id]
+          updated_field: updated_at
+          fields:
+            payment_id:  {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            payment_ref: {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            paid_at:     {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+      refunds:
+        table: refunds
+        schema:
+          key: [refund_id]
+          updated_field: updated_at
+          fields:
+            refund_id:   {type: string,    required: true}
+            order_id:    {type: string,    required: true}
+            refund_ref:  {type: string,    required: true}
+            amount:      {type: number,    required: true}
+            currency:    {type: string,    required: true}
+            status:      {type: string,    required: true}
+            refunded_at: {type: timestamp, required: true}
+            updated_at:  {type: timestamp, required: true}
+
   # ---- Shopee Open Platform API v2 (needs an approved developer app + shop authorization), see docs/shopee_quickstart.md
   shopee:
     connector: shopee

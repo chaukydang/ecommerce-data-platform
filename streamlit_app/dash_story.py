@@ -16,6 +16,10 @@ CURRENCY = os.getenv("DASH_CURRENCY", "$")          # e.g. "R$" for Olist, "₫"
 def money(x: float) -> str:
     x = float(x or 0)
     c = CURRENCY
+    if abs(x) >= 1_000_000_000:
+        return f"{c}{x / 1_000_000_000:.2f}B"
+    if c == "₫":                                              # VND: no cents
+        return f"{c}{x / 1_000_000:.1f}M" if abs(x) >= 1_000_000 else f"{c}{x / 1000:.0f}K" if abs(x) >= 10_000 else f"{c}{x:,.0f}"
     if abs(x) >= 1_000_000:
         return f"{c}{x / 1_000_000:.2f}M"
     if abs(x) >= 10_000:

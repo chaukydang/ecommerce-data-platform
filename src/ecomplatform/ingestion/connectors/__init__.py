@@ -8,6 +8,7 @@ from ecomplatform.ingestion.core.retry_policy import RetryPolicy
 
 from .marketplace_connector import MarketplaceConnector
 from .olist_connector import OlistCsvConnector
+from .omni_sim_connector import OmniSimConnector
 from .oms_connector import OmsConnector
 from .pos_connector import PosConnector
 from .settlement_connector import SettlementConnector
@@ -21,6 +22,7 @@ REGISTRY: dict[str, type[BaseConnector]] = {
     "settlement": SettlementConnector,
     "shopify": ShopifyConnector,
     "olist": OlistCsvConnector,
+    "omni": OmniSimConnector,
     "shopee": ShopeeConnector,
 }
 

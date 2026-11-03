@@ -38,6 +38,7 @@ class Profile:
     label: str                      # shown on the dashboard chip
     currency_symbol: str = "$"
     source: str | None = None       # key in sources.yaml (defaults to the profile name)
+    simulated: bool = False         # dashboard shows the "simulated data" label instead of "real data"
 
     @property
     def src(self) -> str:
@@ -54,6 +55,7 @@ class Profile:
 PROFILES: dict[str, Profile] = {
     "shopify": Profile("shopify", ("orders", "payments", "refunds"), "Shopify test store"),
     "shopee": Profile("shopee", ("orders", "payments", "settlements"), "Shopee Open Platform"),
+    "omni": Profile("omni", ("orders", "payments", "refunds"), "Omnichannel demo (simulated)", currency_symbol="₫", simulated=True),
     "olist": Profile("olist", ("orders", "payments"), "Olist (real marketplace data)", currency_symbol="R$"),
 }
 
@@ -101,7 +103,7 @@ def run_dbt(p: Profile, backend: str, *, project: str | None, location: str, duc
 
 
 def dashboard_command(p: Profile, project: str | None, location: str) -> str:
-    return (f'DASH_DATASET={p.reporting} DASH_SIMULATED=0 DASH_SOURCE_LABEL="{p.label}" DASH_CURRENCY="{p.currency_symbol}" '
+    return (f'DASH_DATASET={p.reporting} DASH_SIMULATED={1 if p.simulated else 0} DASH_SOURCE_LABEL="{p.label}" DASH_CURRENCY="{p.currency_symbol}" '
             f"GCP_PROJECT_ID={project} BQ_LOCATION={location} python -m streamlit run streamlit_app/platform_dashboard.py")
 
 
