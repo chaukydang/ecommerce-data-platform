@@ -238,3 +238,9 @@ platform.db
 .shopify/
 .olist/
 .shopee/
+
+# secrets
+.streamlit/secrets.toml
+key*.json
+secrets*.txt
+*-sa-key.json

@@ -35,11 +35,25 @@ def normalise(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _service_account_credentials():
+    """Streamlit Community Cloud: a service-account key stored in the app's secrets as [gcp_service_account].
+    Locally (no such secret) returns None and the client falls back to your gcloud login (Application Default Credentials)."""
+    try:
+        import streamlit as st
+        info = st.secrets.get("gcp_service_account")
+    except Exception:                       # no secrets file / not running under Streamlit
+        return None
+    if not info:
+        return None
+    from google.oauth2 import service_account
+    return service_account.Credentials.from_service_account_info(dict(info), scopes=["https://www.googleapis.com/auth/bigquery"])
+
+
 class BigQueryBackend:
     def __init__(self, project: str, location: str = "US", dataset: str = "platform_reporting"):
         from google.cloud import bigquery
         self.project, self.dataset = project, dataset
-        self.client = bigquery.Client(project=project, location=location)
+        self.client = bigquery.Client(project=project, location=location, credentials=_service_account_credentials())
 
     def view(self, name: str) -> pd.DataFrame:
         return normalise(self.client.query(f"SELECT * FROM `{self.project}.{self.dataset}.{name}`").to_dataframe())
