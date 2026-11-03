@@ -1,4 +1,4 @@
-.PHONY: demo-bq install test test-unit test-integration lint demo simulator dbt-local up down
+.PHONY: dashboard demo-bq install test test-unit test-integration lint demo simulator dbt-local up down
 
 install:            ## dev install (simulator + DuckDB/dbt + test deps)
 	pip install -e ".[sim,local,bigquery,dev,postgres]"
@@ -23,6 +23,9 @@ simulator:          ## SIMULATED APIs on :8000 (token from SIM_API_TOKEN, defaul
 
 demo-bq:            ## same demo on your own BigQuery project (free sandbox OK): make demo-bq PROJECT=my-project
 	python scripts/run_local_demo.py --backend bigquery --project $(PROJECT) --workdir .demo_bq --reset
+
+dashboard:         ## Streamlit dashboard on BigQuery: make dashboard PROJECT=my-project  (offline: DASH_DUCKDB_PATH=...)
+	GCP_PROJECT_ID=$(PROJECT) streamlit run streamlit_app/platform_dashboard.py
 
 dbt-local:          ## build the platform dbt models against .demo/warehouse.duckdb
 	DUCKDB_PATH=.demo/warehouse.duckdb dbt build --select path:models/platform --target local \

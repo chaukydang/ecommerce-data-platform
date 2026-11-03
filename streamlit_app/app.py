@@ -1,9 +1,10 @@
-import streamlit as st
-from google.cloud import bigquery
+import os
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import os
+import streamlit as st
+from google.cloud import bigquery
 
 # --- Configuration ---
 PROJECT_ID = "clear-variety-492200-n0"
