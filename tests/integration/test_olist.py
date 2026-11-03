@@ -66,3 +66,30 @@ def test_olist_profile_end_to_end_finds_planted_payment_problems(olist, engine, 
     dates = con.execute(f"select min(order_date), max(order_date) from {P.marts}.mart_daily_sales").fetchone()
     con.close()
     assert n == olist["n_orders"] and dates[0].year == 2017                                    # real-period dates, not 'now'
+
+
+def test_download_olist_uses_the_kaggle_cli_and_reports_problems(tmp_path, monkeypatch):
+    """No network here: a fake `kaggle` executable stands in for the CLI (checks arguments, unzip target and error messages)."""
+    from ecomplatform.ingestion.connectors.olist_connector import KAGGLE_DATASET, download_olist
+    bindir = tmp_path / "bin"
+    bindir.mkdir()
+    fixture_dir = tmp_path / "src_csv"
+    write_olist_fixture(fixture_dir, n=20)
+    log = tmp_path / "args.txt"
+    script = bindir / "kaggle"
+    script.write_text(f"#!/bin/sh\necho \"$@\" > {log}\ncp {fixture_dir}/*.csv \"$6\"/\n")        # `datasets download -d X -p <dest>`: dest is the 6th argument
+    script.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bindir}:{__import__('os').environ['PATH']}")
+    dest = download_olist(tmp_path / "data")
+    assert f"datasets download -d {KAGGLE_DATASET} -p {tmp_path / 'data'} --unzip" in log.read_text()
+    assert (dest / "olist_orders_dataset.csv").exists()
+    log.unlink()
+    assert download_olist(tmp_path / "data") == dest and not log.exists()                          # already there: no second download
+
+    script.write_text("#!/bin/sh\necho '401 - Unauthorized' >&2\nexit 1\n")
+    with pytest.raises(PermanentError, match="Kaggle credentials"):
+        download_olist(tmp_path / "other")
+    script.unlink()
+    monkeypatch.setenv("PATH", "/nonexistent")
+    with pytest.raises(PermanentError, match="pip install kaggle"):
+        download_olist(tmp_path / "third")

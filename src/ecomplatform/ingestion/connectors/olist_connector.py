@@ -12,6 +12,8 @@ Olist has no refunds, settlements or OMS data, so those checks are not part of t
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +30,27 @@ STATUS = {"delivered": "COMPLETED", "shipped": "SHIPPED", "invoiced": "PAID", "p
 FILES = {"orders": "olist_orders_dataset.csv", "items": "olist_order_items_dataset.csv", "payments": "olist_order_payments_dataset.csv"}
 TS_COLS = ["order_purchase_timestamp", "order_approved_at", "order_delivered_carrier_date", "order_delivered_customer_date"]
 CHUNK = 5000
+
+
+KAGGLE_DATASET = "olistbr/brazilian-ecommerce"
+
+
+def download_olist(dest: Path) -> Path:
+    """Download + unzip the dataset with the Kaggle CLI (``pip install kaggle``; credentials: KAGGLE_USERNAME + KAGGLE_KEY,
+    KAGGLE_API_TOKEN, or ~/.kaggle/kaggle.json). Returns the folder to use as OLIST_DATA_DIR."""
+    dest = Path(dest)
+    if all((dest / f).exists() for f in FILES.values()):
+        return dest
+    if shutil.which("kaggle") is None:
+        raise PermanentError("the Kaggle CLI is not installed: pip install kaggle  (or download the CSVs manually, docs/olist_quickstart.md)")
+    dest.mkdir(parents=True, exist_ok=True)
+    res = subprocess.run(["kaggle", "datasets", "download", "-d", KAGGLE_DATASET, "-p", str(dest), "--unzip"],
+                         capture_output=True, text=True)
+    if res.returncode != 0 or not all((dest / f).exists() for f in FILES.values()):
+        hint = "Kaggle credentials missing or invalid (Kaggle -> Settings -> API -> Create token)" if "401" in res.stderr + res.stdout \
+            or "credential" in (res.stderr + res.stdout).lower() else (res.stderr or res.stdout)[-300:]
+        raise PermanentError(f"Olist download failed: {hint}")
+    return dest
 
 
 class _FileClient:

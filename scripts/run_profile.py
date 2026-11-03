@@ -31,10 +31,19 @@ def main() -> int:
     ap.add_argument("--location", default=os.getenv("BQ_LOCATION", "US"))
     ap.add_argument("--workdir", default=None)
     ap.add_argument("--skip-dbt", action="store_true")
+    ap.add_argument("--download-olist", action="store_true", help="olist: fetch the dataset with the Kaggle CLI first (needs Kaggle credentials)")
     a = ap.parse_args()
     if a.backend == "bigquery" and not a.project:
         ap.error("--project (or GCP_PROJECT_ID) is required for the bigquery backend")
     work = Path(a.workdir or f".{a.profile}").resolve()
+    if a.profile == "olist" and a.download_olist:
+        from ecomplatform.ingestion.connectors.olist_connector import download_olist
+        try:
+            os.environ["OLIST_DATA_DIR"] = str(download_olist(work / "data"))
+        except IngestionError as exc:
+            print(f"\n{exc}")
+            return 2
+        print(f"Olist CSV files ready in {os.environ['OLIST_DATA_DIR']}")
     work.mkdir(parents=True, exist_ok=True)
     engine = db.init_db(db.get_engine(f"sqlite:///{work / 'platform.db'}"))
     try:

@@ -232,7 +232,7 @@ Shopify/TikTok Shop integration.
 
 ```bash
 pip install -e ".[sim,local,dev]"
-make test     # 98 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
+make test     # 99 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
 make demo     # simulator -> ingest -> dbt on DuckDB -> reconcile -> freshness/DQ -> alerts
 ```
 

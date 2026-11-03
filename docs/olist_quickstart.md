@@ -7,7 +7,18 @@ What the profile loads: **orders** (amount = sum of item price + freight, status
 method used, e.g. voucher + card). Olist has no refunds, settlements or OMS feed, so those checks are off. The reconciliation compares
 what each order should cost with what the customer actually paid - on real data this surfaces genuine differences.
 
-## 1. Download
+## 1. Get the files (automatic, or by hand)
+
+**Automatic (one command, recommended):** create a Kaggle API token (Kaggle -> your profile -> *Settings* -> *API* -> *Create new token*), then
+
+```bash
+pip install -e ".[olist,bigquery,dashboard]"
+export KAGGLE_USERNAME=your_kaggle_username KAGGLE_KEY=the_key_from_the_token      # or follow Kaggle's instructions for the downloaded file
+gcloud auth application-default login
+make olist PROJECT=YOUR_PROJECT_ID          # = python scripts/run_profile.py --profile olist --download-olist --backend bigquery --project ...
+```
+
+**By hand:**
 
 1. https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce -> **Download** (free Kaggle account) and unzip.
 2. You need these three files in one folder: `olist_orders_dataset.csv`, `olist_order_items_dataset.csv`, `olist_order_payments_dataset.csv`.
@@ -32,6 +43,7 @@ The first load of ~100k orders + ~100k payments takes a few minutes; re-running 
 
 ## 3. Notes
 
+* License: Kaggle lists the dataset under CC BY-NC-SA 4.0 (attribution, non-commercial) - check the dataset page and credit Olist when you show it.
 * Olist timestamps carry no timezone; they are treated as UTC. Amounts are Brazilian reais.
 * A delivered order whose payments do not add up to its items is a `PAY_AMOUNT_MISMATCH`; a paid-status order without any payment is `PAY_MISSING`.
   Split payments (voucher + card) are summed, so they are not false positives.
