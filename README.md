@@ -31,6 +31,18 @@ Build a scalable batch data pipeline on GCP to ingest, transform, and analyze Ol
 
 ## Architecture
 
+![Platform architecture](docs/images/arch_overview.png)
+
+| Ingestion run (safe to repeat) | Reconciliation |
+|---|---|
+| ![Ingestion](docs/images/arch_ingestion.png) | ![Reconciliation](docs/images/arch_reconciliation.png) |
+
+![Warehouse layers](docs/images/arch_layers.png)
+
+*Diagram sources: `docs/diagrams/build.py` (`python docs/diagrams/build.py` re-renders the PNGs).*
+
+### Original Olist batch pipeline
+
 ![Pipeline Architecture](docs/ecommerce_pipeline_architecture.svg)
 
 ```
