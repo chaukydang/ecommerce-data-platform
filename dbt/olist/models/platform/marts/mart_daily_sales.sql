@@ -1,5 +1,4 @@
 {{ config(materialized='table',
-          partition_by=({'field': 'order_date', 'data_type': 'date'} if target.type == 'bigquery' else none),
           cluster_by=(['channel'] if target.type == 'bigquery' else none)) }}
 {#- Grain: one date x channel. Gross sales exclude cancelled orders; net = gross - refunds. -#}
 select cast(created_at as date) as order_date,

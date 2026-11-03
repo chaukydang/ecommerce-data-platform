@@ -42,7 +42,8 @@ def test_platform_models_compile_to_valid_bigquery_sql(tmp_path):
     manifest = json.loads((target / "manifest.json").read_text())
     models = {n["name"]: n for n in manifest["nodes"].values() if n["resource_type"] == "model" and "models/platform" in n["original_file_path"]}
     assert {n["schema"] for n in models.values()} == {"platform_staging", "platform_intermediate", "platform_marts"}
-    assert models["fct_platform_orders"]["config"]["partition_by"]["field"] == "created_at"
+    # no partitioning: the BigQuery sandbox drops partitions older than 60 days, which would empty historical (Olist) data
+    assert not models["fct_platform_orders"]["config"].get("partition_by")
     assert models["fct_platform_orders"]["config"]["cluster_by"] == ["channel", "order_status"]
     assert "generate_date_array" in Path(next(f for f in files if f.endswith("dim_date.sql"))).read_text()
     # Olist datasets keep their original names (platform schema override must not leak)
