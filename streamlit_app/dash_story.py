@@ -52,7 +52,13 @@ def aggregate(sales: pd.DataFrame, granularity: str) -> pd.DataFrame:
         d["period"] = d["order_date"].dt.to_period("M").dt.start_time
     else:
         d["period"] = d["order_date"]
-    return d.groupby("period", as_index=False)["net_sales"].sum().sort_values("period")
+    out = d.groupby("period", as_index=False)["net_sales"].sum().sort_values("period")
+    if granularity in ("week", "month") and len(out) > 3:          # the newest week/month is usually incomplete: its dip is not a trend
+        last_day = d["order_date"].max()
+        end = out["period"].iloc[-1] + (pd.Timedelta(days=6) if granularity == "week" else pd.offsets.MonthEnd(0))
+        if last_day < end.normalize():
+            out = out.iloc[:-1]
+    return out
 
 
 def smooth(values: list[float], window: int = 3) -> list[float]:
