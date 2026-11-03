@@ -31,7 +31,7 @@ SOURCE_LABEL = os.getenv("DASH_SOURCE_LABEL", "")
 CHIP_KEY, NOTE_KEY = ("sim_chip", "sim_note") if SIMULATED else ("live_chip", "live_note")
 
 if "lang" not in st.session_state:
-    st.session_state["lang"] = "vi"
+    st.session_state["lang"] = os.getenv("DASH_LANG", "en") if os.getenv("DASH_LANG", "en") in LANGS else "en"   # English by default, DASH_LANG=vi for Vietnamese
 lang = st.session_state["lang"]
 tr = make_tr(lang)
 

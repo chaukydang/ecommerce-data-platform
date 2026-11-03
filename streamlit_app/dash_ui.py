@@ -182,8 +182,9 @@ def bar_chart(labels: list[str], values: list[float], width: int = 560, height: 
     n = len(values)
     if n == 0:
         return ""
-    left, bottom, top = 46, 30, 12
+    bottom, top = 30, 12
     ymax = nice_max(max(values))
+    left = max(46, 7.5 * max(len(fmt(ymax * i / 4)) for i in range(5)) + 16)      # room for long axis labels such as 100,000
     plot_h, plot_w = height - bottom - top, width - left - 20
     slot = plot_w / n
     bw = max(4, min(18, slot * 0.55))
