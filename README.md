@@ -9,6 +9,22 @@
 
 A production-grade batch data pipeline built on GCP that ingests, transforms, and analyzes the [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) from Kaggle.
 
+## Live demo
+
+**Dashboard: https://ecommerce--data---platform.streamlit.app/** (Streamlit Community Cloud, reading BigQuery through a read-only service account).
+It shows a *simulated* omnichannel business (Shopee, TikTok Shop, Lazada, Website, POS; VND; last 12 months) that went through the
+real pipeline: ingestion framework -> BigQuery -> dbt -> financial reconciliation -> monitoring. Real data is also supported:
+the [Olist](docs/olist_quickstart.md) profile loads ~100k real marketplace orders into the same pipeline and dashboard.
+
+| Overview | Sales |
+|---|---|
+| ![Overview](docs/images/dashboard_overview.png) | ![Sales](docs/images/dashboard_sales.png) |
+| **Money reconciliation** | **Data pipeline health** |
+| ![Reconciliation](docs/images/dashboard_reconciliation.png) | ![Pipeline](docs/images/dashboard_pipeline.png) |
+
+Run it yourself: `make omni PROJECT=your-gcp-project` (simulated, ~3 min) or `make olist PROJECT=your-gcp-project` (real data), see
+[docs/omni_demo.md](docs/omni_demo.md), [docs/olist_quickstart.md](docs/olist_quickstart.md) and [docs/streamlit_cloud.md](docs/streamlit_cloud.md).
+
 ## Problem Statement
 
 Build a scalable batch data pipeline on GCP to ingest, transform, and analyze Olist e-commerce data — enabling visibility into order trends, delivery performance, and seller revenue through a structured data warehouse and dashboard.
@@ -217,8 +233,9 @@ gs://<your-bucket>/
 ## Omnichannel Platform extension (ingestion · reconciliation · monitoring)
 
 On top of the Olist batch pipeline, the repo now contains a production-style platform for multi-source e-commerce data.
-**All sources are simulated** (FastAPI mock marketplace / OMS / POS / finance APIs with injected, labelled discrepancies) - none is a real
-Shopify/TikTok Shop integration.
+The default sources are **simulated** (FastAPI mock marketplace / OMS / POS / finance APIs with injected, labelled discrepancies). Real-data profiles:
+**Olist** (real, from Kaggle CSVs), **Shopify** (Admin API) and **Shopee** (Open Platform v2, tested against a mock until a developer app is approved).
+The `omni` profile generates a simulated multi-channel business for the live demo.
 
 | Capability | What it does | Code |
 |---|---|---|
