@@ -19,7 +19,7 @@ dependencies = [
 bigquery = ["google-cloud-bigquery>=3.20", "db-dtypes>=1.2", "dbt-bigquery>=1.8"]
 postgres = ["psycopg2-binary>=2.9"]
 sim = ["fastapi>=0.110", "uvicorn>=0.29"]
-local = ["duckdb>=1.0", "dbt-duckdb>=1.8"]
+local = ["duckdb>=1.1", "dbt-duckdb>=1.8"]
 dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.5", "sqlglot>=25", "cryptography>=42"]
 
 [tool.setuptools.packages.find]

@@ -147,10 +147,12 @@ def test_rejected_rows_use_load_job_not_streaming():
 
 
 def test_reader_sql_is_valid_bigquery_and_timestamps_become_naive_utc():
-    sqlglot.parse_one(latest_version_sql("`p`.`raw_finance`.`payments`"), read="bigquery")
-    df = pd.DataFrame({"order_id": ["a"], "created_at": pd.to_datetime(["2026-11-03T09:00:00Z"], utc=True), "amount": [1.0]})
+    sql = latest_version_sql("`p`.`raw_finance`.`payments`")
+    sqlglot.parse_one(sql, read="bigquery")
+    assert "EXCEPT" not in sql.upper() and "EXCLUDE" not in sql.upper()          # dialect-neutral
+    df = pd.DataFrame({"order_id": ["a"], "_rn": [1], "created_at": pd.to_datetime(["2026-11-03T09:00:00Z"], utc=True), "amount": [1.0]})
     out = BigQueryReader("proj", client=FakeClient(df=df)).read_latest("raw_finance.payments")
-    assert out["created_at"].dt.tz is None and out["created_at"][0] == pd.Timestamp("2026-11-03 09:00:00")
+    assert "_rn" not in out.columns and out["created_at"].dt.tz is None and out["created_at"][0] == pd.Timestamp("2026-11-03 09:00:00")
     # and the engine's timing logic accepts it (tz-aware vs naive comparison would raise)
     from ecomplatform.reconciliation.engine import _klass
     assert _klass(out["created_at"][0], NOW, 2) in ("TIMING", "CONFIRMED")
