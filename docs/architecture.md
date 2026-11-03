@@ -4,7 +4,8 @@ The repository contains two pipelines that share one warehouse project:
 
 1. **Olist batch pipeline** (original): Kaggle → GCS (Parquet) → Airflow → BigQuery `olist_*` → dbt → Streamlit.
 2. **Omnichannel platform** (this extension): API sources → Python ingestion framework → BigQuery `raw_*` → dbt `platform_*` →
-   reconciliation → monitoring/Lark alerts. **All of its sources are simulated** (`src/ecomplatform/simulators`).
+   reconciliation → monitoring/Lark alerts. Sources are either **simulated** (`src/ecomplatform/simulators`, and the `omni` profile) or
+   **real** (the `olist` profile; `shopee` and `shopify` connectors are tested against mocks). See the profile table in the README.
 
 ```
  SIMULATED SOURCES (FastAPI)          INGESTION (src/ecomplatform/ingestion)           WAREHOUSE
@@ -55,10 +56,14 @@ runner (dbt, Airflow itself) are covered.
 
 ## Known limits
 
-* Simulated sources only. Real Shopify/TikTok Shop/OMS integration needs real credentials and `normalize()` adjustments in
-  the matching connector; the settlement formula must be configured with each marketplace's real accounting rules.
-* BigQuery is verified indirectly (fake client, BigQuery-dialect SQL parsing, dbt compile for the BigQuery target) but **never executed against a
-  real project** in CI. Everything else runs in CI on DuckDB, SQLite and PostgreSQL.
+* Only the `olist` profile is real data. Shopee and Shopify connectors are tested against mocks; real use needs developer credentials and
+  may need `normalize()` adjustments. The settlement formula must be configured with each marketplace's real accounting rules. TikTok Shop,
+  Lazada and POS exist only as simulated channels (`omni` profile).
+* BigQuery was executed for real on the free sandbox (ingestion, dbt, views, reconciliation, dashboard), but CI cannot reach GCP: there it is
+  verified with a fake client, BigQuery-dialect SQL parsing and dbt compile for the BigQuery target. Everything else runs in CI on DuckDB,
+  SQLite and PostgreSQL.
+* BigQuery sandbox: no DML, no streaming, and partitions/tables older than 60 days are deleted. The platform marts are therefore not
+  partitioned (historical data such as Olist 2016-2018 would be removed immediately); raw tables are append-only and de-duplicated with a `SELECT`.
 * The BigQuery MERGE de-duplication compares against the whole target table per batch (no partition pruning is possible for that check);
   fine at this scale, revisit (e.g. restrict to recent partitions) if raw tables grow to billions of rows.
 * Schema drift is detected for pass-through connectors (finance) and via data-quality `schema_drift` on the raw tables; for

@@ -26,7 +26,7 @@ All raw tables carry ingestion metadata: `source_system`, `source_record_id` (bu
 | `int_refund_allocations` | intermediate | order (Σ distinct refunds) |
 | `int_settlement_allocations` | intermediate | settlement (+ expected net payout) |
 | `int_unified_orders` | intermediate | canonical order (marketplace + OMS + payment + refund + settlement) |
-| `fct_platform_orders` | mart | one order; partitioned by `created_at`, clustered by channel/status (BigQuery) |
+| `fct_platform_orders` | mart | one order; clustered by channel/status on BigQuery (not partitioned: see architecture.md, sandbox limits) |
 | `fct_payments`, `fct_refunds`, `fct_settlements` | mart | one transaction / settlement entry |
 | `dim_channel`, `dim_date` | mart | channel / calendar date |
 | `mart_daily_sales` | mart | date × channel (gross excludes cancelled; net = gross − refunds) |

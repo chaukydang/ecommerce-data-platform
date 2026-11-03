@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Dry-run bytes-processed benchmark for partition / cluster pruning. NOT executed in CI (needs a GCP project).
+"""Dry-run bytes-processed benchmark for partition / cluster pruning (platform marts are clustered, not partitioned: see docs/architecture.md). NOT executed in CI (needs a GCP project).
 
     python scripts/benchmark_bigquery.py --project my-project --location us-east1
 """
@@ -9,7 +9,7 @@ from google.cloud import bigquery
 
 QUERIES = {
     "fct_platform_orders: full scan": "SELECT order_id, total_amount FROM `{p}.platform_marts.fct_platform_orders`",
-    "fct_platform_orders: last 7 days (partition pruning)": (
+    "fct_platform_orders: last 7 days (no partition: scans the whole table)": (
         "SELECT order_id, total_amount FROM `{p}.platform_marts.fct_platform_orders` "
         "WHERE created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)"),
     "fct_platform_orders: one channel, last 7 days (+ clustering)": (
