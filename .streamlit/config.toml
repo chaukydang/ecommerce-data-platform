@@ -1,0 +1,12 @@
+# Used when Streamlit is started from the repository root. Forces the light theme the dashboard is designed for
+# (without it a dark OS/browser theme makes sidebar text white-on-white).
+[theme]
+base = "light"
+primaryColor = "#2F5BEA"
+backgroundColor = "#F3F4F6"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#111827"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

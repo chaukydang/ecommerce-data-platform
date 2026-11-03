@@ -91,21 +91,35 @@ def test_every_page_renders_in_both_languages(built, monkeypatch, page, lang):
     assert len(_html(at)) > 200
 
 
-def test_overview_tells_the_story_with_real_numbers(built, monkeypatch):
+def _words(html: str) -> int:
+    import re
+    html = re.sub(r"<style>.*?</style>", " ", html, flags=re.S)
+    return len(re.sub(r"<[^>]+>", " ", html).split())
+
+
+def test_overview_tells_the_story_with_data_not_paragraphs(built, monkeypatch):
     html = _html(_run(monkeypatch, built.path, "overview", "en"))
-    assert "of orders have matching money" in html and "orders need a closer look" in html
-    assert f"{len(built.dataset.marketplace_orders):,}" in html           # order count from the data, not hard-coded
-    assert "24 orders" in html                                          # 30 injected - 6 duplicate-key findings (Python engine only)
-    for section in ("What happened", "Why it matters", "What to do next", "Needs attention", "Channel leaderboard"):
+    assert "of orders match" in html and "need review" in html
+    assert f"{len(built.dataset.marketplace_orders):,}" in html           # order count comes from the data
+    assert "24" in html                                                    # 30 injected - 6 duplicate-key findings (Python engine only)
+    assert 'class="hbar"' in html and html.count("<svg") >= 4               # sparklines + activity chart
+    for section in ("Needs attention", "Healthiest checks", "Channel leaderboard", "Biggest open findings", "Simulated data"):
         assert section in html
-    assert "simulated" in html
+    assert "What happened" not in html and "<p>" not in html                # no walls of text
+    assert _words(html) < 330, _words(html)
 
 
 def test_overview_vietnamese_has_no_raw_codes(built, monkeypatch):
     html = _html(_run(monkeypatch, built.path, "overview", "vi"))
-    assert "Chuyện gì đã xảy ra" in html and "Nên làm gì tiếp" in html
+    assert "Sức khỏe đơn hàng" in html and "đơn khớp tiền" in html and "Dữ liệu mô phỏng" in html
     for code in ("AMOUNT_MISMATCH", "REFUND_EXCEEDS_PAID", "PENDING_SYNC", "FORMULA_MISMATCH"):
-        assert code not in html                                         # technical codes are translated for lay readers
+        assert code not in html                                             # technical codes are translated for lay readers
+
+
+def test_light_theme_is_forced():
+    import tomllib
+    cfg = tomllib.loads((ROOT / ".streamlit/config.toml").read_text())
+    assert cfg["theme"]["base"] == "light"
 
 
 def test_filters_narrow_the_numbers(built, monkeypatch):

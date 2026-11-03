@@ -56,6 +56,15 @@ header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecor
 .lrow .av {{ width:42px; height:42px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.85rem; }}
 .lrow .who {{ flex:1; min-width:0; }} .lrow .n {{ font-weight:600; font-size:.95rem; }} .lrow .s {{ color:{MUTED}; font-size:.8rem; }}
 .lrow .rank {{ display:flex; align-items:center; gap:6px; font-weight:600; }} .up {{ color:{GREEN}; font-size:.7rem; }} .down {{ color:{RED}; font-size:.7rem; }} .flat {{ color:#9CA3AF; font-size:.7rem; }}
+ .chip {{ display:inline-block; background:#FEF3C7; color:#92400E; font-size:.72rem; font-weight:600; padding:3px 10px; border-radius:99px; margin-left:12px; vertical-align:middle; }}
+.hero {{ padding: 22px 26px; }}
+.hero .top {{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px; }}
+.hero .headline {{ font-size:1.45rem; font-weight:700; letter-spacing:-.01em; }}
+.hero .sub {{ color:{MUTED}; font-size:.82rem; }}
+.hbar {{ display:flex; height:30px; border-radius:99px; overflow:hidden; margin:16px 0 12px; background:#EEF0F4; }}
+.hbar span {{ display:block; height:100%; }}
+.legend {{ display:flex; gap:22px; flex-wrap:wrap; font-size:.85rem; color:#374151; }}
+.legend i {{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; }} .legend b {{ margin-right:4px; }}
 .flow {{ display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; }} .flow .step {{ flex:1; min-width:150px; background:#F8FAFF; border:1px solid #E3EAFF; border-radius:16px; padding:14px 16px; }}
 .flow .step b {{ display:block; font-size:.92rem; }} .flow .step span {{ color:{MUTED}; font-size:.8rem; }} .flow .arrow {{ align-self:center; color:#9CA3AF; font-size:1.3rem; }}
 .gloss {{ display:grid; grid-template-columns: 200px 1fr; gap:10px 18px; }} .gloss b {{ font-weight:600; }} .gloss span {{ color:#4B5563; }}
@@ -150,10 +159,23 @@ def card(title: str, body: str, extra_class: str = "", min_height: int = 0) -> s
     return f'<div class="card {extra_class}"{style}>' + (f"<h4>{esc(title)}</h4>" if title else "") + body + "</div>"
 
 
-def kpi(label: str, value: str, unit: str = "", note: str = "", visual: str = "") -> str:
+def kpi(label: str, value: str, unit: str = "", note: str = "", visual: str = "", hint: str = "") -> str:
     u = f"<small>{esc(unit)}</small>" if unit else ""
     n = f'<div class="note">{note}</div>' if note else ""
-    return f'<div class="card kpi"><div class="label">{esc(label)}</div><div class="value">{esc(value)}{u}</div>{n}{visual}</div>'
+    tip = f' title="{esc(hint)}"' if hint else ""
+    return f'<div class="card kpi"{tip}><div class="label">{esc(label)}</div><div class="value">{esc(value)}{u}</div>{n}{visual}</div>'
+
+
+def health_bar(parts: list[tuple[str, float, str]]) -> str:
+    """parts: (label, count, colour). One stacked bar + a legend with the numbers (the data tells the story)."""
+    total = sum(c for _, c, _ in parts) or 1
+    segs = "".join(f'<span style="width:{c / total * 100:.2f}%;background:{col}" title="{esc(lab)}: {c:,.0f}"></span>' for lab, c, col in parts)
+    leg = "".join(f'<div><i style="background:{col}"></i><b>{c:,.0f}</b>{esc(lab)}</div>' for lab, c, col in parts)
+    return f'<div class="hbar">{segs}</div><div class="legend">{leg}</div>'
+
+
+def legend(items: list[tuple[str, str]]) -> str:
+    return '<div class="legend">' + "".join(f'<div><i style="background:{c}"></i>{esc(t)}</div>' for t, c in items) + "</div>"
 
 
 def meter(frac: float) -> str:

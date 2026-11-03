@@ -232,7 +232,7 @@ Shopify/TikTok Shop integration.
 
 ```bash
 pip install -e ".[sim,local,dev]"
-make test     # 76 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
+make test     # 79 tests: unit + simulator/DuckDB/dbt + BigQuery fake-client/compile checks (also run in CI, incl. PostgreSQL)
 make demo     # simulator -> ingest -> dbt on DuckDB -> reconcile -> freshness/DQ -> alerts
 ```
 
@@ -241,7 +241,7 @@ a batch adds 0 rows; an outage mid-pagination leaves the checkpoint untouched an
 appear in audit rows or alerts; the dbt SQL mart and the Python rule engine flag the same orders; repeated reconciliation runs create no
 duplicate exceptions; repeated alerts are grouped and recovery is announced.
 
-**Dashboard** (`streamlit_app/platform_dashboard.py`): a business-readable report on top of the BigQuery views - an auto-written "short story" (what happened / why it matters / what to do), KPI cards with sparklines, activity chart, health rankings, leaderboards, plain-language names for every technical code, a *How to read this* page, and a Vietnamese / English switch.
+**Dashboard** (`streamlit_app/platform_dashboard.py`): a business-readable report on top of the BigQuery views that tells the story with data, not paragraphs - an order-health bar, KPI cards with sparklines, activity chart, health rankings and leaderboards - with plain-language names for every technical code, a *How to read this* page, a Vietnamese / English switch, and a forced light theme (`.streamlit/config.toml`; start Streamlit from the repo root).
 ```bash
 pip install -e ".[dashboard]"
 # 1) run sql/bigquery_dashboard_views.sql once in the BigQuery console   2) gcloud auth application-default login

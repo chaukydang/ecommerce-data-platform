@@ -50,7 +50,7 @@ def load_all():
 # ------------------------------------------------------------------ shared widgets
 def header(title: str, csv: tuple[str, bytes] | None = None) -> None:
     a, b = st.columns([8, 2])
-    a.markdown(f'<div class="page-title">{ui.esc(title)}</div>', unsafe_allow_html=True)
+    a.markdown(f'<div class="page-title">{ui.esc(title)}<span class="chip">{ui.esc(tr("sim_chip"))}</span></div>', unsafe_allow_html=True)
     if csv:
         b.download_button("⬇  " + tr("download"), csv[1], csv[0], "text/csv", use_container_width=True)
     ui.render('<hr class="page-rule">')
@@ -80,6 +80,13 @@ def activity_card(f: pd.DataFrame, gran: str, height: int = 352) -> str:
             f'<span style="color:#9CA3AF">{ui.esc(tr("activity_sub", unit=tr(gran).lower()))}</span></h4>{chart}</div>')
 
 
+def order_health_card(headline: str, checked: int, n_review: int, n_wait: int) -> str:
+    bar = ui.health_bar([(tr("hb_clean"), checked - n_review - n_wait, "#22C55E"), (tr("hb_wait"), n_wait, "#F59E0B"),
+                         (tr("hb_review"), n_review, "#EF4444")])
+    return (f'<div class="card hero"><div class="top"><div class="headline">{ui.esc(headline)}</div>'
+            f'<div class="sub">{ui.esc(tr("hero_title"))} · {ui.esc(tr("hero_sub", n=f"{checked:,}"))}</div></div>{bar}</div>')
+
+
 def nice_check(t: str) -> str:
     return check_name(lang, t)
 
@@ -93,15 +100,9 @@ def page_overview():
     f = story.filter_sales(sales, tf, ch)
     s = story.build_story(lang, f, kpi, summary)
 
-    ui.render(f'<div class="banner"><div class="eyebrow">{ui.esc(tr("story_title"))}</div>'
-              f'<div class="headline">{ui.esc(s["headline"])}</div><div class="sim">{ui.esc(tr("sim_note"))}</div></div>')
-    c = st.columns(3)
-    for col, key in zip(c, ("what", "why", "todo"), strict=True):
-        body = ui.esc(s[key]).replace("**", "§").replace("*", "")
-        parts = body.split("§")
-        body = "".join(f"<b>{p}</b>" if i % 2 else p for i, p in enumerate(parts))
-        col.markdown("".join(x.strip() for x in f'<div class="card story"><h5>{ui.esc(tr("story_" + key))}</h5><p>{body}</p></div>'.splitlines()),
-                     unsafe_allow_html=True)
+    checked = int(kpi["orders_checked"])
+    n_review, n_wait = int(kpi["orders_with_confirmed_issue"]), int(kpi["orders_with_timing_only"])
+    ui.render(order_health_card(s["headline"], checked, n_review, n_wait))
     st.write("")
 
     left, right = st.columns([6, 5])
@@ -119,11 +120,11 @@ def page_overview():
         r2 = st.columns(3)
         clean = float(kpi["clean_orders_pct"])
         r2[0].markdown(ui.kpi(tr("kpi_clean"), f"{clean:.1f}", "%", tr("kpi_of_orders", n=f"{int(kpi['orders_checked']):,}"),
-                              ui.meter(clean / 100)), unsafe_allow_html=True)
+                              ui.meter(clean / 100), hint=tr("g_clean_d")), unsafe_allow_html=True)
         r2[1].markdown(ui.kpi(tr("kpi_issues"), f"{int(kpi['orders_with_confirmed_issue'])}", "",
                               tr("kpi_timing_note", n=int(kpi["orders_with_timing_only"])),
                               ui.meter(int(kpi["orders_with_confirmed_issue"]) / max(1, int(kpi["orders_checked"])))), unsafe_allow_html=True)
-        r2[2].markdown(ui.kpi(tr("kpi_amount"), story.money(kpi["unresolved_amount_difference"]), "", tr("g_confirmed")),
+        r2[2].markdown(ui.kpi(tr("kpi_amount"), story.money(kpi["unresolved_amount_difference"]), "", "", "", hint=tr("g_confirmed_d")),
                        unsafe_allow_html=True)
     right.markdown("".join(x.strip() for x in activity_card(f, gran, 352).splitlines()), unsafe_allow_html=True)
     st.write("")
@@ -176,14 +177,16 @@ def page_recon():
     d = load_all()
     kpi, summary, findings = d["v_recon_kpi"].iloc[0], d["v_recon_summary"], d["v_recon_findings"]
     header(tr("title_recon"), ("reconciliation_findings.csv", findings.to_csv(index=False).encode()))
-    ui.render(ui.card("", f'<div class="story"><p>{ui.esc(tr("recon_intro")).replace("*", "")}</p></div>'))
+    s_ = story.build_story(lang, None, kpi, summary)
+    ui.render(order_health_card(s_["headline"], int(kpi["orders_checked"]), int(kpi["orders_with_confirmed_issue"]),
+                                int(kpi["orders_with_timing_only"])))
     st.write("")
     k = st.columns(4)
     k[0].markdown(ui.kpi(tr("kpi_clean"), f"{kpi['clean_orders_pct']:.1f}", "%", tr("kpi_of_orders", n=f"{int(kpi['orders_checked']):,}"),
-                         ui.meter(kpi["clean_orders_pct"] / 100)), unsafe_allow_html=True)
-    k[1].markdown(ui.kpi(tr("confirmed"), f"{int(kpi['confirmed_findings'])}", "", tr("g_confirmed_d")), unsafe_allow_html=True)
-    k[2].markdown(ui.kpi(tr("timing"), f"{int(kpi['timing_findings'])}", "", tr("g_timing_d")), unsafe_allow_html=True)
-    k[3].markdown(ui.kpi(tr("kpi_amount"), story.money(kpi["unresolved_amount_difference"]), "", tr("g_confirmed")), unsafe_allow_html=True)
+                         ui.meter(kpi["clean_orders_pct"] / 100), hint=tr("g_clean_d")), unsafe_allow_html=True)
+    k[1].markdown(ui.kpi(tr("confirmed"), f"{int(kpi['confirmed_findings'])}", hint=tr("g_confirmed_d")), unsafe_allow_html=True)
+    k[2].markdown(ui.kpi(tr("timing"), f"{int(kpi['timing_findings'])}", hint=tr("g_timing_d")), unsafe_allow_html=True)
+    k[3].markdown(ui.kpi(tr("kpi_amount"), story.money(kpi["unresolved_amount_difference"]), hint=tr("g_confirmed_d")), unsafe_allow_html=True)
     st.write("")
     health = story.check_health(summary)
     top = story.top_finding_types(summary)
@@ -196,7 +199,8 @@ def page_recon():
          for r in top.head(7).itertuples()])), unsafe_allow_html=True)
     st.write("")
     st.subheader(tr("findings_table"))
-    st.caption(tr("class_help"))
+    ui.render(ui.legend([(tr("confirmed"), "#EF4444"), (tr("timing"), "#F59E0B")]))
+    st.write("")
     c1, c2 = st.columns(2)
     cls = c1.multiselect(tr("filter_class"), ["CONFIRMED", "TIMING"], default=["CONFIRMED"],
                          format_func=lambda x: tr("confirmed" if x == "CONFIRMED" else "timing"))
@@ -216,12 +220,10 @@ def page_recon():
 def page_pipeline():
     h = load_all()["v_pipeline_health"].sort_values("rows_loaded", ascending=False)
     header(tr("title_pipeline"))
-    ui.render(ui.card("", f'<div class="story"><p>{ui.esc(tr("pipe_intro"))}</p></div>'))
-    st.write("")
     k = st.columns(4)
     k[0].markdown(ui.kpi(tr("pipe_tables"), f"{len(h)}"), unsafe_allow_html=True)
     k[1].markdown(ui.kpi(tr("pipe_rows"), f"{h['rows_loaded'].sum():,.0f}"), unsafe_allow_html=True)
-    k[2].markdown(ui.kpi(tr("pipe_versions"), f"{h['extra_versions'].sum():,.0f}", "", tr("g_oms") and ""), unsafe_allow_html=True)
+    k[2].markdown(ui.kpi(tr("pipe_versions"), f"{h['extra_versions'].sum():,.0f}"), unsafe_allow_html=True)
     k[3].markdown(ui.kpi(tr("pipe_last"), f"{h['last_loaded_at'].max():%d %b %H:%M}"), unsafe_allow_html=True)
     st.write("")
     chart = ui.bar_chart([x.split(".")[-1] for x in h["dataset"]], h["rows_loaded"].tolist(), height=260)
@@ -230,7 +232,6 @@ def page_pipeline():
     shown = h.rename(columns={"dataset": tr("col_table"), "rows_loaded": tr("col_rows"), "batches": tr("col_batches"),
                               "last_loaded_at": tr("col_last"), "minutes_since_last_load": tr("col_age")})
     st.dataframe(shown[[tr("col_table"), tr("col_rows"), tr("col_batches"), tr("col_last"), tr("col_age")]], width="stretch", hide_index=True)
-    st.caption(tr("pipe_note"))
 
 
 def page_guide():
