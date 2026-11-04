@@ -11,9 +11,6 @@ One trusted view of **orders and money** across Shopee, TikTok Shop, Lazada, a w
 It pulls data from sales-channel APIs, loads it into BigQuery, models it with dbt, checks that orders, payments and refunds agree,
 raises alerts on Lark, and shows the result in a dashboard that a non-technical person can read.
 
-Built as an extension of [srjain92/e-commerce-data-pipeline](https://github.com/srjain92/e-commerce-data-pipeline) (an Olist batch pipeline,
-kept in the [appendix](#appendix-the-original-olist-batch-pipeline)).
-
 ## Live demo
 
 **Dashboard: https://ecommerce--data---platform.streamlit.app/** (Streamlit Community Cloud, reading BigQuery with a read-only service account).
